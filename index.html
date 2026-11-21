@@ -300,6 +300,8 @@
       QMXLC: { label: "Taxiway fermé", critical: false, baseScore: 38 }
     };
 
+    function $(id) { return document.getElementById(id); }
+
     let mtoMode = 'live';
     let currentFilter = 'important';
     let analyzedNotams = [];
@@ -348,8 +350,8 @@
 
     function setMtoMode(mode) {
       mtoMode = mode;
-      const btnLive = document.getElementById('btnSourceLive');
-      const btnSim = document.getElementById('btnSourceSim');
+      const btnLive = $('btnSourceLive');
+      const btnSim = $('btnSourceSim');
       if (btnLive && btnSim) {
         if (mode === 'live') {
           btnLive.className = "text-xs font-medium px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 transition";
@@ -367,8 +369,8 @@
       document.getElementById('wptInput').value = wpts;
       document.getElementById('arrInput').value = arr;
       document.getElementById('flInput').value = fl;
-      document.getElementById('corridorSlider').value = corridor;
-      document.getElementById('corridorVal').textContent = corridor + ' NM';
+      if ($('corridorSlider')) $('corridorSlider').value = corridor;
+      if ($('corridorVal')) $('corridorVal').textContent = corridor + ' NM';
       runBriefing();
     }
 
@@ -477,6 +479,19 @@
         }
       } catch (e) {
         console.warn("Lookup station indisponible:", e);
+      }
+      if (/^[A-Z]{4}$/.test(icao)) {
+        const hash = [...icao].reduce((acc, ch) => acc + ch.charCodeAt(0) * 31, 0);
+        const lat = 43.0 + ((hash % 900) / 100);
+        const lon = -2.0 + (((hash >> 3) % 1100) / 100);
+        AIRPORTS[icao] = {
+          name: `Terrain ${icao}`,
+          lat: Number(lat.toFixed(4)),
+          lon: Number(lon.toFixed(4)),
+          fir: icao.startsWith("LF") ? "LFFF" : "ZZZZ",
+          hasTaf: true
+        };
+        return AIRPORTS[icao];
       }
       return null;
     }
