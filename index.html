@@ -37,9 +37,9 @@
         <div>
           <div class="flex items-center gap-2">
             <h1 class="font-bold text-base tracking-tight text-white">RouteBriefing</h1>
-            <span class="text-[10px] font-mono-aero uppercase px-2 py-0.5 rounded bg-sky-500/15 text-sky-400 border border-sky-500/30">NETLIFY EDGE • LIVE MTO</span>
+            <span class="text-[10px] font-mono-aero uppercase px-2 py-0.5 rounded bg-rose-500/15 text-rose-300 border border-rose-500/30">BRIEFING DÉCODÉ • LIVE MTO</span>
           </div>
-          <p class="text-xs text-slate-400">Triage NOTAM OACI & METAR/TAF sur couloir de route</p>
+          <p class="text-xs text-slate-400">METAR/TAF décodés, distance à l'axe & NOTAM critiques en rouge</p>
         </div>
       </div>
 
@@ -124,9 +124,8 @@
   <!-- MAIN CONTENT GRID -->
   <main class="max-w-7xl mx-auto w-full px-4 py-5 grid grid-cols-1 lg:grid-cols-12 gap-5 flex-1">
 
-    <!-- LEFT COLUMN: MAP & METAR/TAF -->
+    <!-- LEFT COLUMN: MAP & DECODED METAR/TAF -->
     <div class="lg:col-span-5 flex flex-col gap-5">
-      <!-- Route Map Visualization -->
       <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
         <div class="px-4 py-2.5 border-b border-slate-800 flex items-center justify-between">
           <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-300 flex items-center gap-2">
@@ -144,22 +143,21 @@
               <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-rose-500 inline-block"></span> IFR/LIFR</span>
             </div>
             <div class="flex items-center gap-2">
-              <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rotate-45 bg-amber-400 inline-block"></span> NOTAM Critique</span>
+              <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rotate-45 bg-rose-500 inline-block"></span> NOTAM Rouge</span>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- METAR / TAF CORRIDOR FEED -->
       <div class="bg-slate-900 border border-slate-800 rounded-xl flex flex-col flex-1">
         <div class="px-4 py-3 border-b border-slate-800 flex items-center justify-between">
           <div>
-            <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-300">METAR & TAF sur la route</h2>
-            <p id="mtoSourceLabel" class="text-[11px] text-slate-400">Stations dans le couloir + station TAF voisine</p>
+            <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-300">METAR & TAF décodés sur la route</h2>
+            <p id="mtoSourceLabel" class="text-[11px] text-slate-400">Lecture claire + code brut OACI</p>
           </div>
           <span id="mtoCountBadge" class="font-mono-aero text-xs px-2 py-0.5 rounded bg-slate-800 text-slate-300">0 stations</span>
         </div>
-        <div id="mtoContainer" class="p-3 space-y-3 max-h-[600px] overflow-y-auto"></div>
+        <div id="mtoContainer" class="p-3 space-y-3 max-h-[650px] overflow-y-auto"></div>
       </div>
     </div>
 
@@ -169,11 +167,11 @@
         <div class="bg-slate-900 border border-slate-800 rounded-xl p-3">
           <div class="text-[11px] text-slate-400 uppercase font-semibold">NOTAM Analysés</div>
           <div id="statTotalNotams" class="font-mono-aero text-2xl font-bold text-white mt-0.5">0</div>
-          <div class="text-[11px] text-slate-500">Dans la FIR & couloir</div>
+          <div class="text-[11px] text-slate-500">Sur l'axe & couloir</div>
         </div>
-        <div class="bg-slate-900 border border-amber-500/30 rounded-xl p-3">
-          <div class="text-[11px] text-amber-400 uppercase font-semibold">Importants retenus</div>
-          <div id="statImportantNotams" class="font-mono-aero text-2xl font-bold text-amber-400 mt-0.5">0</div>
+        <div class="bg-slate-900 border border-rose-500/40 rounded-xl p-3">
+          <div class="text-[11px] text-rose-400 uppercase font-semibold">Critiques (Rouge)</div>
+          <div id="statImportantNotams" class="font-mono-aero text-2xl font-bold text-rose-400 mt-0.5">0</div>
           <div class="text-[11px] text-slate-400">Impact direct vol / terrain</div>
         </div>
         <div class="bg-slate-900 border border-slate-800 rounded-xl p-3">
@@ -185,8 +183,8 @@
 
       <div class="bg-slate-900 border border-slate-800 rounded-xl p-3 flex flex-wrap items-center justify-between gap-3">
         <div class="flex flex-wrap items-center gap-1.5">
-          <button onclick="setNotamFilter('important')" id="tabImportant" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-amber-500/20 text-amber-300 border border-amber-500/40 transition">
-            Importants uniquement
+          <button onclick="setNotamFilter('important')" id="tabImportant" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-rose-500/20 text-rose-300 border border-rose-500/40 transition">
+            Critiques uniquement (Rouge)
           </button>
           <button onclick="setNotamFilter('all')" id="tabAll" class="px-3 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-white transition">
             Tous les NOTAM
@@ -198,7 +196,7 @@
 
         <label class="flex items-center gap-2 text-xs text-slate-400 cursor-pointer select-none">
           <input id="toggleRawOaci" type="checkbox" onchange="renderNotams()" class="rounded bg-slate-800 border-slate-600 text-sky-500" />
-          <span>Texte brut OACI</span>
+          <span>Afficher code brut OACI</span>
         </label>
       </div>
 
@@ -260,16 +258,16 @@
     };
 
     const Q_CODE_RULES = {
-      QMRLC: { label: "Piste fermée", critical: true, baseScore: 95 },
-      QMRXX: { label: "Restriction piste", critical: true, baseScore: 85 },
-      QFAXX: { label: "Restriction aérodrome / TWR", critical: true, baseScore: 82 },
-      QRTCA: { label: "Zone réglementée / R active", critical: true, baseScore: 88 },
-      QWELW: { label: "Activité voltige / para / drone", critical: true, baseScore: 84 },
-      QICAS: { label: "ILS / Approche hors service", critical: true, baseScore: 80 },
-      QNVAS: { label: "VOR / DME hors service", critical: false, baseScore: 68 },
-      QOBCE: { label: "Obstacle / Grue érigée", critical: false, baseScore: 22 },
-      QLPAS: { label: "Feux PAPI / balisage partiel", critical: false, baseScore: 45 },
-      QMXLC: { label: "Taxiway fermé", critical: false, baseScore: 38 }
+      QMRLC: { category: "PISTE", label: "Piste fermée", critical: true, baseScore: 95 },
+      QMRXX: { category: "PISTE", label: "Restriction piste", critical: true, baseScore: 86 },
+      QFAXX: { category: "AÉRODROME / CTR", label: "Restriction trafic / TWR", critical: true, baseScore: 85 },
+      QRTCA: { category: "ESPACE AÉRIEN / ZRT", label: "Zone réglementée active", critical: true, baseScore: 90 },
+      QWELW: { category: "ACTIVITÉ VOL", label: "Voltige / para / drone", critical: true, baseScore: 84 },
+      QICAS: { category: "APPROCHE / ILS", label: "Aide approche hors service", critical: true, baseScore: 82 },
+      QNVAS: { category: "NAVIGATION / ATS", label: "VOR / route ATS modifiée", critical: false, baseScore: 68 },
+      QOBCE: { category: "OBSTACLE", label: "Grue / obstacle ponctuel", critical: false, baseScore: 22 },
+      QLPAS: { category: "BALISAGE", label: "Feux / balisage partiel", critical: false, baseScore: 45 },
+      QMXLC: { category: "SOL / TAXIWAY", label: "Taxiway fermé", critical: false, baseScore: 38 }
     };
 
     let mtoMode = 'live';
@@ -352,11 +350,9 @@
       return minDist;
     }
 
-    // Appel direct à la Netlify Function /.netlify/functions/weather
     async function callNetlifyWeather(params) {
       const qs = new URLSearchParams(params).toString();
-      const res = await fetch(`/.netlify/functions/weather?${qs}`);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const res = await fetch(`/.netlify/functions/weather?${qs}`); if (!res.ok) throw new Error(`HTTP ${res.status}`);
       return await res.json();
     }
 
@@ -381,492 +377,36 @@
       return null;
     }
 
-    function buildDynamicNotams(depIcao, arrIcao, depApt, arrApt, cruiseFl) {
-      const midLat = (depApt.lat + arrApt.lat) / 2;
-      const midLon = (depApt.lon + arrApt.lon) / 2;
-
-      return [
-        {
-          id: "A4812/26", fir: depApt.fir, qCode: "QFAXX",
-          lowerFl: 0, upperFl: 45, lat: depApt.lat, lon: depApt.lon, radiusNm: 5,
-          itemA: depIcao, itemE: `AD ${depIcao} (${depApt.name}) : TRAFIC VFR INTENSE EN TOUR DE PISTE ET VOLTIGE LOCALE. CONTACTER TWR / INFO AVANT PÉNÉTRATION CTR.`,
-          criticalHint: true
-        },
-        {
-          id: "A4819/26", fir: arrApt.fir, qCode: "QMRLC",
-          lowerFl: 0, upperFl: 30, lat: arrApt.lat, lon: arrApt.lon, radiusNm: 5,
-          itemA: arrIcao, itemE: `AD ${arrIcao} (${arrApt.name}) : PISTE SECONDAIRE / BANDE HERBE FERMÉE POUR ENTRETIEN. PISTE PRINCIPALE EN SERVICE UNIQUEMENT.`,
-          criticalHint: true
-        },
-        {
-          id: "W2104/26", fir: "LFFF", qCode: "QRTCA",
-          lowerFl: 0, upperFl: 65, lat: midLat + 0.04, lon: midLon - 0.03, radiusNm: 8,
-          itemA: "LFFF", itemE: "ZONE RÉGLEMENTÉE TEMPORAIRE (ZRT) ACTIVÉE SUR LE TRAJET POUR VOLS DRONES ET EXERCICE SÉCURITÉ CIVILE. CONTOURNEMENT OBLIGATOIRE.",
-          criticalHint: true
-        },
-        {
-          id: "B1109/26", fir: "LFFF", qCode: "QWELW",
-          lowerFl: 0, upperFl: 115, lat: midLat - 0.06, lon: midLon + 0.05, radiusNm: 10,
-          itemA: "LFFF", itemE: "ACTIVITÉ PARACHUTAGE INTENSE SIGNALÉE EN BORDURE DU COULOIR ENTRE SOL ET FL115. VEILLE RADIO SIV OBLIGATOIRE.",
-          criticalHint: true
-        },
-        {
-          id: "A4901/26", fir: arrApt.fir, qCode: "QICAS",
-          lowerFl: 0, upperFl: 50, lat: arrApt.lat, lon: arrApt.lon, radiusNm: 10,
-          itemA: arrIcao, itemE: `APPROCHE INSTRUMENTALE / PAPI ${arrIcao} EN MAINTENANCE PARTIELLE. APPROCHE À VUE PRÉCONISÉE EN CONDITIONS VMC.`,
-          criticalHint: cruiseFl >= 85
-        },
-        {
-          id: "C0982/26", fir: depApt.fir, qCode: "QOBCE",
-          lowerFl: 0, upperFl: 12, lat: depApt.lat + 0.03, lon: depApt.lon + 0.04, radiusNm: 3,
-          itemA: depIcao, itemE: `GRUE MOBILE ÉRIGÉE À 2.8 NM EST DU TERRAIN ${depIcao}, HAUTEUR 115 FT AGL, BALISAGE LUMINEUX DE NUIT ACTIF.`,
-          criticalHint: false
-        },
-        {
-          id: "A5110/26", fir: "LFFF", qCode: "QNVAS",
-          lowerFl: 195, upperFl: 660, lat: midLat, lon: midLon, radiusNm: 40,
-          itemA: "LFFF", itemE: "ESPACE SUPÉRIEUR : SECTEUR FRA / ROUTE ATS MODIFIÉE AU-DESSUS DU FL195 POUR RÉGULATION TRAFIC EN ROUTE.",
-          criticalHint: cruiseFl >= 195
-        },
-        {
-          id: "D0412/26", fir: arrApt.fir, qCode: "QMXLC",
-          lowerFl: 0, upperFl: 5, lat: arrApt.lat, lon: arrApt.lon, radiusNm: 2,
-          itemA: arrIcao, itemE: `TAXIWAY SUD ${arrIcao} FERMÉ POUR RÉFECTION MARQUAGE AU SOL. SUIVRE INSTRUCTIONS MARSHALLER / AFIS.`,
-          criticalHint: false
-        }
+    // --- DECODAGE METAR & TAF EN LANGAGE CLAIR ---
+    function decodeWeatherPhenomena(text) {
+      const map = [
+        { re: /\b\+TSRA\b/g, fr: "Orage fort + pluie forte" },
+        { re: /\bTSRA\b/g, fr: "Orage + pluie" },
+        { re: /\bTS\b/g, fr: "Activité orageuse" },
+        { re: /\b-RA\b/g, fr: "Pluie faible" },
+        { re: /\b\+RA\b/g, fr: "Pluie forte" },
+        { re: /\bRA\b/g, fr: "Pluie" },
+        { re: /\b-DZ\b/g, fr: "Bruine faible" },
+        { re: /\bDZ\b/g, fr: "Bruine" },
+        { re: /\bFG\b/g, fr: "Brouillard" },
+        { re: /\bBR\b/g, fr: "Brume" },
+        { re: /\bHZ\b/g, fr: "Brume sèche" },
+        { re: /\bSHRA\b/g, fr: "Averses de pluie" },
+        { re: /\b-SHRA\b/g, fr: "Faibles averses" }
       ];
-    }
-
-    function evaluateNotam(notam, routePoints, corridorNm, cruiseFl) {
-      const rule = Q_CODE_RULES[notam.qCode] || { label: "Information", critical: false, baseScore: 40 };
-      const distNm = distanceToRouteNm(notam.lat, notam.lon, routePoints);
-      const effectiveRange = corridorNm + (notam.radiusNm || 5);
-      const isInCorridor = distNm <= effectiveRange;
-      const altMatch = (cruiseFl >= notam.lowerFl - 15) && (cruiseFl <= notam.upperFl + 15);
-      const isTerminal = (notam.itemA === routePoints[0].code || notam.itemA === routePoints[routePoints.length - 1].code);
-
-      let score = rule.baseScore;
-      let reasons = [];
-
-      if (isTerminal) { score += 15; reasons.push(`Terrain ${notam.itemA}`); }
-      if (isInCorridor) { reasons.push(`${distNm.toFixed(1)} NM de la route`); }
-      else { score -= 45; reasons.push(`Hors couloir (${distNm.toFixed(0)} NM)`); }
-
-      if (altMatch) { reasons.push(`FL${notam.lowerFl}–FL${notam.upperFl}`); }
-      else { score -= 35; reasons.push(`Hors altitude (FL${notam.lowerFl}–FL${notam.upperFl})`); }
-
-      if (notam.qCode === "QOBCE" || notam.qCode === "QMXLC") {
-        score = Math.min(score, 48);
-        reasons.push("Impact mineur");
-      }
-
-      score = Math.max(0, Math.min(100, score));
-      return {
-        ...notam,
-        categoryLabel: rule.label,
-        distNm,
-        score,
-        isImportant: score >= 65 && (isInCorridor || isTerminal),
-        reasons
-      };
-    }
-
-    function parseFlightCategory(rawMetar) {
-      if (!rawMetar) return { cat: "VFR", color: "emerald" };
-      const visMatch = rawMetar.match(/\s(\d{4})\s/);
-      const smMatch = rawMetar.match(/\s(\d+(?:\/\d+)?)SM\s/);
-      let visMeters = 9999;
-      if (rawMetar.includes("CAVOK")) visMeters = 9999;
-      else if (visMatch) visMeters = parseInt(visMatch[1], 10);
-      else if (smMatch) {
-        const val = smMatch[1].includes("/") ? eval(smMatch[1]) : parseFloat(smMatch[1]);
-        visMeters = val * 1609;
-      }
-
-      const cigMatches = [...rawMetar.matchAll(/(?:BKN|OVC|VV)(\d{3})/g)];
-      let ceilingFt = 9999;
-      if (cigMatches.length > 0) ceilingFt = Math.min(...cigMatches.map(m => parseInt(m[1], 10) * 100));
-
-      if (ceilingFt < 500 || visMeters < 1600) return { cat: "LIFR", color: "fuchsia" };
-      if (ceilingFt < 1000 || visMeters < 5000) return { cat: "IFR", color: "rose" };
-      if (ceilingFt <= 3000 || visMeters <= 8000) return { cat: "MVFR", color: "sky" };
-      return { cat: "VFR", color: "emerald" };
-    }
-
-    function getSimulatedWeather(icao) {
-      const sims = {
-        LFPN: { metar: `METAR LFPN 211500Z 23009KT 9999 FEW038 11/05 Q1021 NOSIG`, taf: null },
-        LFPM: { metar: `METAR LFPM 211500Z 22010KT 9999 SCT042 11/04 Q1021 NOSIG`, taf: null },
-        LFPO: { metar: `METAR LFPO 211500Z 23011KT 9999 FEW040 12/05 Q1021 NOSIG`, taf: `TAF LFPO 211100Z 2112/2218 23012KT 9999 SCT040 TEMPO 2118/2122 4500 -RA BKN018` },
-        LFPG: { metar: `METAR LFPG 211500Z 24012KT 9999 SCT042 11/04 Q1021 NOSIG`, taf: `TAF LFPG 211100Z 2112/2218 24014KT 9999 SCT045 BECMG 2120/2123 BKN020` },
-        LFMN: { metar: `METAR LFMN 211500Z 14008KT CAVOK 17/08 Q1023 NOSIG`, taf: `TAF LFMN 211100Z 2112/2218 13010KT CAVOK` },
-        EGLL: { metar: `METAR EGLL 211500Z 25016G26KT 4800 -RA BKN014 OVC022 09/07 Q1012`, taf: `TAF EGLL 211100Z 2112/2218 25018G28KT 5000 -RA BKN012` }
-      };
-      return sims[icao] || {
-        metar: `METAR ${icao} 211500Z 24010KT 9999 SCT035 12/05 Q1020 NOSIG`,
-        taf: `TAF ${icao} 211100Z 2112/2218 24012KT 9999 SCT035`
-      };
-    }
-
-    async function fetchCorridorWeather(routePoints, corridorNm) {
-      const stationsInCorridor = Object.entries(AIRPORTS)
-        .map(([icao, data]) => ({ icao, ...data, distNm: distanceToRouteNm(data.lat, data.lon, routePoints) }))
-        .filter(st => st.distNm <= corridorNm)
-        .sort((a, b) => a.distNm - b.distNm);
-
-      const depIcao = routePoints[0].code;
-      const arrIcao = routePoints[routePoints.length - 1].code;
-      const mustInclude = [depIcao, arrIcao, "LFPO"];
-      mustInclude.forEach(code => {
-        if (AIRPORTS[code] && !stationsInCorridor.some(s => s.icao === code)) {
-          stationsInCorridor.push({
-            icao: code, ...AIRPORTS[code],
-            distNm: distanceToRouteNm(AIRPORTS[code].lat, AIRPORTS[code].lon, routePoints)
-          });
-        }
+      const found = [];
+      map.forEach(item => {
+        if (item.re.test(text)) found.push(item.fr);
       });
-
-      const targetIds = stationsInCorridor.slice(0, 10).map(s => s.icao).join(",");
-
-      if (mtoMode === 'live') {
-        try {
-          const [metarsData, tafsData] = await Promise.all([
-            callNetlifyWeather({ type: "metar", ids: targetIds }),
-            callNetlifyWeather({ type: "taf", ids: targetIds })
-          ]);
-
-          const metarMap = {};
-          const tafMap = {};
-          if (Array.isArray(metarsData)) metarsData.forEach(m => { if (m.icaoId) metarMap[m.icaoId] = m.rawOb; });
-          if (Array.isArray(tafsData)) tafsData.forEach(t => { if (t.icaoId) tafMap[t.icaoId] = t.rawTAF; });
-
-          if (Object.keys(metarMap).length === 0) {
-            throw new Error("Aucun METAR live retourné pour cette zone");
-          }
-
-          showBanner("Données MTO temps réel récupérées via Netlify Edge → AviationWeather.gov", "info");
-
-          return stationsInCorridor
-            .filter(st => st.icao === depIcao || st.icao === arrIcao || metarMap[st.icao])
-            .slice(0, 6)
-            .map(st => {
-              let metar = metarMap[st.icao];
-              let taf = tafMap[st.icao];
-              let note = null;
-
-              if (!metar) {
-                const nearestMetarSt = stationsInCorridor.find(other => metarMap[other.icao]);
-                if (nearestMetarSt) {
-                  metar = metarMap[nearestMetarSt.icao];
-                  note = `METAR station voisine (${nearestMetarSt.icao})`;
-                } else {
-                  metar = getSimulatedWeather(st.icao).metar;
-                }
-              }
-
-              if (!taf) {
-                const nearestTafSt = stationsInCorridor.find(other => tafMap[other.icao]);
-                if (nearestTafSt) {
-                  taf = tafMap[nearestTafSt.icao];
-                  note = note ? `${note} • TAF ${nearestTafSt.icao}` : `TAF station voisine (${nearestTafSt.icao} à ${haversineNm(st.lat, st.lon, nearestTafSt.lat, nearestTafSt.lon).toFixed(0)} NM)`;
-                }
-              }
-
-              return {
-                ...st,
-                metar,
-                taf,
-                note,
-                isLive: true,
-                flightCat: parseFlightCategory(metar)
-              };
-            });
-        } catch (err) {
-          showBanner(`Mode simulation activé (${err.message}). Vérifiez que la fonction Netlify est déployée.`, "warn");
-        }
-      } else {
-        showBanner("Mode simulation MTO actif.", "info");
-      }
-
-      return stationsInCorridor
-        .filter(st => st.icao !== "LFPO" || depIcao === "LFPO" || arrIcao === "LFPO" || !AIRPORTS[depIcao]?.hasTaf)
-        .slice(0, 6)
-        .map(st => {
-          const sim = getSimulatedWeather(st.icao);
-          let taf = sim.taf;
-          let note = null;
-          if (!taf) {
-            taf = getSimulatedWeather("LFPO").taf;
-            note = "TAF station voisine (LFPO)";
-          }
-          return {
-            ...st,
-            metar: sim.metar,
-            taf,
-            note,
-            isLive: false,
-            flightCat: parseFlightCategory(sim.metar)
-          };
-        });
+      return found.join(", ");
     }
 
-    async function runBriefing() {
-      const btn = document.getElementById('btnAnalyze');
-      btn.disabled = true;
-      btn.classList.add('opacity-60');
+    function decodeMetar(raw) {
+      if (!raw) return null;
+      const items = [];
 
-      let rawDep = document.getElementById('depInput').value.trim().toUpperCase();
-      let arrIcao = document.getElementById('arrInput').value.trim().toUpperCase();
-
-      if (rawDep.includes("-") || rawDep.includes(" ") || rawDep.includes(">")) {
-        const parts = rawDep.split(/[\s\->]+/).filter(Boolean);
-        if (parts.length >= 2) {
-          rawDep = parts[0];
-          arrIcao = parts[parts.length - 1];
-          document.getElementById('depInput').value = rawDep;
-          document.getElementById('arrInput').value = arrIcao;
-        }
-      }
-
-      const depIcao = rawDep;
-      const wptRaw = document.getElementById('wptInput').value.trim().toUpperCase();
-      const cruiseFl = parseInt(document.getElementById('flInput').value, 10);
-      currentCorridorNm = parseInt(document.getElementById('corridorSlider').value, 10);
-
-      const [depApt, arrApt] = await Promise.all([resolveAirport(depIcao), resolveAirport(arrIcao)]);
-
-      if (!depApt || !arrApt) {
-        showBanner(`Code OACI inconnu : ${!depApt ? depIcao : arrIcao}.`, "error");
-        btn.disabled = false;
-        btn.classList.remove('opacity-60');
-        return;
-      }
-
-      const routePoints = [{ code: depIcao, name: depApt.name, lat: depApt.lat, lon: depApt.lon }];
-      if (wptRaw && wptRaw !== "DCT") {
-        wptRaw.split(/[\s,]+/).forEach(w => {
-          if (WAYPOINTS[w]) routePoints.push({ code: w, name: w, lat: WAYPOINTS[w].lat, lon: WAYPOINTS[w].lon });
-          else if (AIRPORTS[w]) routePoints.push({ code: w, name: AIRPORTS[w].name, lat: AIRPORTS[w].lat, lon: AIRPORTS[w].lon });
-        });
-      }
-      routePoints.push({ code: arrIcao, name: arrApt.name, lat: arrApt.lat, lon: arrApt.lon });
-      currentRoutePoints = routePoints;
-
-      let totalDist = 0;
-      for (let i = 0; i < routePoints.length - 1; i++) {
-        totalDist += haversineNm(routePoints[i].lat, routePoints[i].lon, routePoints[i + 1].lat, routePoints[i + 1].lon);
-      }
-
-      const altLabel = cruiseFl < 70 ? `${cruiseFl * 100} ft` : `FL${cruiseFl}`;
-      document.getElementById('distanceTag').textContent = `${totalDist.toFixed(0)} NM • Marge ±${currentCorridorNm} NM`;
-      document.getElementById('routeSummaryBadge').textContent = `${depIcao} (${depApt.name}) → ${arrIcao} (${arrApt.name}) • ${altLabel}`;
-
-      const rawNotams = buildDynamicNotams(depIcao, arrIcao, depApt, arrApt, cruiseFl);
-      analyzedNotams = rawNotams
-        .map(n => evaluateNotam(n, routePoints, currentCorridorNm, cruiseFl))
-        .sort((a, b) => b.score - a.score);
-
-      const impCount = analyzedNotams.filter(n => n.isImportant).length;
-      document.getElementById('statTotalNotams').textContent = analyzedNotams.length;
-      document.getElementById('statImportantNotams').textContent = impCount;
-      document.getElementById('statFilteredNotams').textContent = analyzedNotams.length - impCount;
-
-      corridorMto = await fetchCorridorWeather(routePoints, currentCorridorNm);
-      renderMto();
-      renderNotams();
-      drawRouteCanvas();
-
-      btn.disabled = false;
-      btn.classList.remove('opacity-60');
-    }
-
-    function renderMto() {
-      const container = document.getElementById('mtoContainer');
-      document.getElementById('mtoCountBadge').textContent = `${corridorMto.length} stations`;
-
-      const badgeColors = {
-        emerald: "bg-emerald-500/20 text-emerald-300 border-emerald-500/40",
-        sky: "bg-sky-500/20 text-sky-300 border-sky-500/40",
-        rose: "bg-rose-500/20 text-rose-300 border-rose-500/40",
-        fuchsia: "bg-fuchsia-500/20 text-fuchsia-300 border-fuchsia-500/40"
-      };
-
-      container.innerHTML = corridorMto.map(st => `
-        <div class="bg-slate-950/90 border border-slate-800 rounded-lg p-3 hover:border-slate-700 transition">
-          <div class="flex items-center justify-between gap-2 mb-2">
-            <div class="flex items-center gap-2">
-              <span class="font-mono-aero font-bold text-sm text-white">${st.icao}</span>
-              <span class="text-xs text-slate-400 truncate max-w-[140px]">${st.name}</span>
-              <span class="font-mono-aero text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-400">
-                ${st.distNm < 1 ? 'Sur route' : '+' + st.distNm.toFixed(0) + ' NM'}
-              </span>
-            </div>
-            <div class="flex items-center gap-1.5">
-              <span class="text-[10px] font-mono-aero px-1.5 py-0.5 rounded ${st.isLive ? 'bg-emerald-500/10 text-emerald-400' : 'bg-slate-800 text-slate-400'}">
-                ${st.isLive ? 'LIVE' : 'SIM'}
-              </span>
-              <span class="font-mono-aero text-[11px] font-bold px-2 py-0.5 rounded border ${badgeColors[st.flightCat.color]}">
-                ${st.flightCat.cat}
-              </span>
-            </div>
-          </div>
-          <div class="space-y-1.5">
-            <div class="bg-slate-900/90 border border-slate-800/80 rounded p-2 font-mono-aero text-[11px] leading-relaxed text-slate-200 break-words">
-              ${st.metar}
-            </div>
-            ${st.taf ? `
-              <div class="bg-slate-900/50 border border-slate-800/60 rounded p-2 font-mono-aero text-[11px] leading-relaxed text-sky-300/90 break-words">
-                ${st.taf}
-              </div>
-            ` : ''}
-            ${st.note ? `<div class="text-[10px] text-slate-400 italic">${st.note}</div>` : ''}
-          </div>
-        </div>
-      `).join('');
-    }
-
-    function setNotamFilter(filter) {
-      currentFilter = filter;
-      const tabs = { important: 'tabImportant', all: 'tabAll', filtered: 'tabFiltered' };
-      Object.entries(tabs).forEach(([key, id]) => {
-        const el = document.getElementById(id);
-        if (key === filter) {
-          el.className = "px-3 py-1.5 rounded-lg text-xs font-semibold bg-amber-500/20 text-amber-300 border border-amber-500/40 transition";
-        } else {
-          el.className = "px-3 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-white transition";
-        }
-      });
-      renderNotams();
-    }
-
-    function renderNotams() {
-      const container = document.getElementById('notamContainer');
-      const showRaw = document.getElementById('toggleRawOaci').checked;
-
-      let list = analyzedNotams;
-      if (currentFilter === 'important') list = analyzedNotams.filter(n => n.isImportant);
-      else if (currentFilter === 'filtered') list = analyzedNotams.filter(n => !n.isImportant);
-
-      if (list.length === 0) {
-        container.innerHTML = `<div class="bg-slate-900 border border-slate-800 rounded-xl p-8 text-center text-sm text-slate-400">Aucun NOTAM dans cette catégorie.</div>`;
-        return;
-      }
-
-      container.innerHTML = list.map(n => {
-        const isHigh = n.score >= 80;
-        const borderClass = n.isImportant ? (isHigh ? 'border-amber-500/50' : 'border-sky-500/40') : 'border-slate-800 opacity-75';
-        const scoreBadge = n.isImportant
-          ? (isHigh ? 'bg-amber-500/20 text-amber-300 border-amber-500/40' : 'bg-sky-500/20 text-sky-300 border-sky-500/40')
-          : 'bg-slate-800 text-slate-400 border-slate-700';
-
-        return `
-          <div class="bg-slate-900 border ${borderClass} rounded-xl p-4 transition">
-            <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
-              <div class="flex items-center gap-2">
-                <span class="font-mono-aero font-bold text-xs px-2 py-0.5 rounded bg-slate-950 text-white border border-slate-700">${n.id}</span>
-                <span class="font-mono-aero text-xs font-semibold text-sky-400">${n.itemA}</span>
-                <span class="text-xs font-semibold text-slate-200">${n.categoryLabel}</span>
-              </div>
-              <span class="font-mono-aero text-[11px] font-bold px-2 py-0.5 rounded border ${scoreBadge}">
-                Score ${n.score}/100
-              </span>
-            </div>
-            <p class="text-sm text-slate-200 leading-relaxed mb-3 font-medium">${n.itemE}</p>
-            ${showRaw ? `
-              <pre class="bg-slate-950 border border-slate-800 rounded-lg p-2.5 mb-3 font-mono-aero text-[11px] text-slate-400 overflow-x-auto">(${n.id} NOTAMN
-Q) ${n.fir}/${n.qCode}/IV/NBO/AE/${String(n.lowerFl).padStart(3,'0')}/${String(n.upperFl).padStart(3,'0')}/
-A) ${n.itemA}
-E) ${n.itemE})</pre>
-            ` : ''}
-            <div class="flex flex-wrap items-center gap-1.5">
-              ${n.reasons.map(r => `<span class="text-[11px] font-mono-aero px-2 py-0.5 rounded bg-slate-950 text-slate-400 border border-slate-800">${r}</span>`).join('')}
-            </div>
-          </div>
-        `;
-      }).join('');
-    }
-
-    function drawRouteCanvas() {
-      const canvas = document.getElementById('routeCanvas');
-      const ctx = canvas.getContext('2d');
-      const w = canvas.width;
-      const h = canvas.height;
-      ctx.clearRect(0, 0, w, h);
-
-      ctx.strokeStyle = '#0f172a';
-      ctx.lineWidth = 1;
-      for (let x = 0; x < w; x += 30) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke(); }
-      for (let y = 0; y < h; y += 30) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke(); }
-
-      if (currentRoutePoints.length < 2) return;
-
-      const allLats = [...currentRoutePoints.map(p => p.lat), ...corridorMto.map(s => s.lat)];
-      const allLons = [...currentRoutePoints.map(p => p.lon), ...corridorMto.map(s => s.lon)];
-      const minLat = Math.min(...allLats) - 0.22;
-      const maxLat = Math.max(...allLats) + 0.22;
-      const minLon = Math.min(...allLons) - 0.35;
-      const maxLon = Math.max(...allLons) + 0.35;
-
-      const project = (lat, lon) => ({
-        x: 40 + ((lon - minLon) / (maxLon - minLon || 1)) * (w - 80),
-        y: (h - 35) - ((lat - minLat) / (maxLat - minLat || 1)) * (h - 70)
-      });
-
-      const projectedRoute = currentRoutePoints.map(p => ({ ...p, ...project(p.lat, p.lon) }));
-
-      ctx.save();
-      ctx.lineCap = 'round';
-      ctx.lineJoin = 'round';
-      ctx.strokeStyle = 'rgba(14, 165, 233, 0.14)';
-      ctx.lineWidth = Math.min(90, Math.max(24, currentCorridorNm * 0.9));
-      ctx.beginPath();
-      projectedRoute.forEach((pt, idx) => idx === 0 ? ctx.moveTo(pt.x, pt.y) : ctx.lineTo(pt.x, pt.y));
-      ctx.stroke();
-      ctx.restore();
-
-      ctx.strokeStyle = '#38bdf8';
-      ctx.lineWidth = 2.5;
-      ctx.setLineDash([6, 4]);
-      ctx.beginPath();
-      projectedRoute.forEach((pt, idx) => idx === 0 ? ctx.moveTo(pt.x, pt.y) : ctx.lineTo(pt.x, pt.y));
-      ctx.stroke();
-      ctx.setLineDash([]);
-
-      const mtoColorMap = { emerald: '#34d399', sky: '#38bdf8', rose: '#f43f5e', fuchsia: '#e879f9' };
-      corridorMto.forEach(st => {
-        const pt = project(st.lat, st.lon);
-        ctx.fillStyle = mtoColorMap[st.flightCat.color] || '#34d399';
-        ctx.beginPath();
-        ctx.arc(pt.x, pt.y, 4.5, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.font = '600 10px "JetBrains Mono", monospace';
-        ctx.fillStyle = '#cbd5e1';
-        ctx.fillText(st.icao, pt.x + 7, pt.y + 3);
-      });
-
-      analyzedNotams.filter(n => n.isImportant).forEach(n => {
-        const pt = project(n.lat, n.lon);
-        ctx.save();
-        ctx.translate(pt.x, pt.y);
-        ctx.rotate(Math.PI / 4);
-        ctx.fillStyle = '#fbbf24';
-        ctx.fillRect(-4, -4, 8, 8);
-        ctx.restore();
-      });
-
-      projectedRoute.forEach((pt, idx) => {
-        const isEnd = idx === 0 || idx === projectedRoute.length - 1;
-        ctx.fillStyle = isEnd ? '#f8fafc' : '#38bdf8';
-        ctx.beginPath();
-        ctx.arc(pt.x, pt.y, isEnd ? 5 : 3.5, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.font = '700 11px "JetBrains Mono", monospace';
-        ctx.fillStyle = '#ffffff';
-        ctx.fillText(pt.code, pt.x - 14, pt.y - 10);
-      });
-    }
-
-    runBriefing();
-  </script>
-</body>
-</html>
+      // Vent
+      const windMatch = raw.match(/\b(VRB|\d{3})(\d{2,3})(?:G(\d{2,3}))?KT\b/);
+      if (windMatch) {
+        const dir = windMatch[1] === "VRB" ? "Variable" : `${windMatch[1]}°`; const spd = parseInt(windMatch[2], 10); const gust = windMatch[3] ? ` (rafales ${parseInt(windMatch[3], 10)} kt)` : "";
+        items.push(`Vent :
