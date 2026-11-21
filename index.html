@@ -1089,132 +1089,233 @@ E) ${n.itemE})</pre>
 
     let leafletMap = null;
     let routeLayerGroup = null;
+    let leafletFailed = false;
+
+    function renderFallbackSvgMap() {
+      const container = document.getElementById('routeMap');
+      if (!container || currentRoutePoints.length < 2) return;
+
+      const pts = [
+        ...currentRoutePoints.map(p => ({ lat: p.lat, lon: p.lon })),
+        ...corridorMto.map(s => ({ lat: s.lat, lon: s.lon })),
+        ...analyzedNotams.filter(n => n.isImportant).map(n => ({ lat: n.lat, lon: n.lon }))
+      ];
+
+      let minLat = Math.min(...pts.map(p => p.lat));
+      let maxLat = Math.max(...pts.map(p => p.lat));
+      let minLon = Math.min(...pts.map(p => p.lon));
+      let maxLon = Math.max(...pts.map(p => p.lon));
+
+      const padLat = Math.max((maxLat - minLat) * 0.25, 0.15);
+      const padLon = Math.max((maxLon - minLon) * 0.25, 0.22);
+      minLat -= padLat; maxLat += padLat;
+      minLon -= padLon; maxLon += padLon;
+
+      const w = Math.max(container.clientWidth || 800, 320);
+      const h = Math.max(container.clientHeight || 380, 260);
+      const pad = 36;
+
+      const project = (lat, lon) => {
+        const x = pad + ((lon - minLon) / Math.max(maxLon - minLon, 0.0001)) * (w - pad * 2);
+        const y = h - pad - ((lat - minLat) / Math.max(maxLat - minLat, 0.0001)) * (h - pad * 2);
+        return [x, y];
+      };
+
+      const polyCoords = currentRoutePoints.map(p => project(p.lat, p.lon));
+      const polyStr = polyCoords.map(c => `${c[0].toFixed(1)},${c[1].toFixed(1)}`).join(" ");
+
+      const mtoColorMap = { emerald: "#10b981", sky: "#0ea5e9", rose: "#f43f5e", fuchsia: "#d946ef" };
+      const mtoSvg = corridorMto.map(st => {
+        const [x, y] = project(st.lat, st.lon);
+        const col = mtoColorMap[st.flightCat.color] || "#10b981";
+        return `<g>
+          <circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="6" fill="${col}" stroke="#0f172a" stroke-width="2" />
+          <text x="${(x + 9).toFixed(1)}" y="${(y + 4).toFixed(1)}" fill="#cbd5e1" font-size="11" font-family="JetBrains Mono, monospace">${st.icao} (${st.flightCat.cat})</text>
+        </g>`;
+      }).join("");
+
+      const notamSvg = analyzedNotams.filter(n => n.isImportant).map(n => {
+        const [x, y] = project(n.lat, n.lon);
+        return `<g transform="translate(${x.toFixed(1)},${y.toFixed(1)}) rotate(45)">
+          <rect x="-5" y="-5" width="10" height="10" fill="#f43f5e" stroke="#ffffff" stroke-width="1.5" />
+        </g>`;
+      }).join("");
+
+      const ptSvg = currentRoutePoints.map((pt, idx) => {
+        const [x, y] = project(pt.lat, pt.lon);
+        const isEnd = idx === 0 || idx === currentRoutePoints.length - 1;
+        return `<g>
+          <circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${isEnd ? 7 : 5}" fill="${isEnd ? '#ffffff' : '#38bdf8'}" stroke="#0f172a" stroke-width="2" />
+          <text x="${x.toFixed(1)}" y="${(y - 11).toFixed(1)}" text-anchor="middle" fill="#f8fafc" font-weight="700" font-size="11" font-family="JetBrains Mono, monospace">${pt.code}</text>
+        </g>`;
+      }).join("");
+
+      container.innerHTML = `
+        <svg viewBox="0 0 ${w} ${h}" class="w-full h-full bg-[#07110e]">
+          <defs>
+            <pattern id="gridAero" width="40" height="40" patternUnits="userSpaceOnUse">
+              <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1e293b" stroke-width="0.6" opacity="0.45"/>
+            </pattern>
+          </defs>
+          <rect width="${w}" height="${h}" fill="url(#gridAero)" />
+          <polyline points="${polyStr}" fill="none" stroke="#38bdf8" stroke-width="22" stroke-opacity="0.14" stroke-linecap="round" stroke-linejoin="round" />
+          <polyline points="${polyStr}" fill="none" stroke="#0284c7" stroke-width="3" stroke-dasharray="7,5" stroke-linecap="round" stroke-linejoin="round" />
+          ${mtoSvg}
+          ${notamSvg}
+          ${ptSvg}
+        </svg>
+      `;
+    }
 
     function initLeafletMap() {
-      if (leafletMap || !window.L) return;
-      leafletMap = L.map('routeMap', { zoomControl: true, attributionControl: true }).setView([48.68, 2.38], 9);
+      if (leafletFailed || !window.L || typeof window.L.map !== 'function') {
+        leafletFailed = true;
+        return;
+      }
+      if (leafletMap) return;
+      try {
+        leafletMap = L.map('routeMap', { zoomControl: true, attributionControl: true }).setView([48.68, 2.38], 9);
 
-      // Fond relief & villes détaillées (Esri World Topo Map + Carto Voyager labels)
-      const esriTopo = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', {
-        maxZoom: 18,
-        attribution: '© Esri, USGS, NOAA'
-      });
+        const esriTopo = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', {
+          maxZoom: 18,
+          attribution: '© Esri, USGS, NOAA'
+        });
 
-      const cartoVoyager = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-        maxZoom: 19,
-        attribution: '© OpenStreetMap, © CARTO'
-      });
+        const cartoVoyager = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+          maxZoom: 19,
+          attribution: '© OpenStreetMap, © CARTO'
+        });
 
-      const openTopo = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
-        maxZoom: 16,
-        attribution: '© OpenTopoMap'
-      });
+        const openTopo = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+          maxZoom: 16,
+          attribution: '© OpenTopoMap'
+        });
 
-      esriTopo.addTo(leafletMap);
+        esriTopo.addTo(leafletMap);
 
-      L.control.layers(
-        {
-          "Relief & Villes (Esri Topo)": esriTopo,
-          "Carte Claire & Villes (Carto)": cartoVoyager,
-          "Courbes de Niveau (OpenTopo)": openTopo
-        },
-        null,
-        { position: 'topright', collapsed: true }
-      ).addTo(leafletMap);
+        L.control.layers(
+          {
+            "Relief & Villes (Esri Topo)": esriTopo,
+            "Carte Claire & Villes (Carto)": cartoVoyager,
+            "Courbes de Niveau (OpenTopo)": openTopo
+          },
+          null,
+          { position: 'topright', collapsed: true }
+        ).addTo(leafletMap);
 
-      routeLayerGroup = L.layerGroup().addTo(leafletMap);
+        routeLayerGroup = L.layerGroup().addTo(leafletMap);
+      } catch (e) {
+        leafletFailed = true;
+        leafletMap = null;
+      }
     }
 
     function drawRouteCanvas() {
-      initLeafletMap();
-      if (!leafletMap || !routeLayerGroup) return;
-      routeLayerGroup.clearLayers();
-
       if (currentRoutePoints.length < 2) return;
+      initLeafletMap();
 
-      const latLngs = currentRoutePoints.map(p => [p.lat, p.lon]);
-      const corridorMeters = currentCorridorNm * 1852;
+      if (leafletFailed || !leafletMap || !routeLayerGroup) {
+        renderFallbackSvgMap();
+        return;
+      }
 
-      // Couloir latéral autour de chaque segment et point
-      latLngs.forEach(ll => {
-        L.circle(ll, {
-          radius: corridorMeters,
+      try {
+        routeLayerGroup.clearLayers();
+        const latLngs = currentRoutePoints.map(p => [p.lat, p.lon]);
+        const corridorMeters = currentCorridorNm * 1852;
+
+        latLngs.forEach(ll => {
+          L.circle(ll, {
+            radius: corridorMeters,
+            color: '#38bdf8',
+            weight: 1,
+            opacity: 0.35,
+            fillColor: '#38bdf8',
+            fillOpacity: 0.10,
+            interactive: false
+          }).addTo(routeLayerGroup);
+        });
+
+        L.polyline(latLngs, {
           color: '#38bdf8',
-          weight: 1,
-          opacity: 0.35,
-          fillColor: '#38bdf8',
-          fillOpacity: 0.10,
+          weight: 18,
+          opacity: 0.14,
+          lineCap: 'round',
+          lineJoin: 'round',
           interactive: false
         }).addTo(routeLayerGroup);
-      });
 
-      L.polyline(latLngs, {
-        color: '#38bdf8',
-        weight: 18,
-        opacity: 0.14,
-        lineCap: 'round',
-        lineJoin: 'round',
-        interactive: false
-      }).addTo(routeLayerGroup);
+        L.polyline(latLngs, {
+          color: '#0284c7',
+          weight: 3.5,
+          opacity: 0.95,
+          dashArray: '8, 6'
+        }).addTo(routeLayerGroup);
 
-      // Axe de route
-      L.polyline(latLngs, {
-        color: '#0284c7',
-        weight: 3.5,
-        opacity: 0.95,
-        dashArray: '8, 6'
-      }).addTo(routeLayerGroup);
-
-      // Stations MTO
-      const mtoColorMap = { emerald: '#10b981', sky: '#0ea5e9', rose: '#f43f5e', fuchsia: '#d946ef' };
-      corridorMto.forEach(st => {
-        const col = mtoColorMap[st.flightCat.color] || '#10b981';
-        L.circleMarker([st.lat, st.lon], {
-          radius: 7,
-          fillColor: col,
-          color: '#0f172a',
-          weight: 2,
-          fillOpacity: 0.95
-        })
-          .bindTooltip(`${st.icao} • ${st.flightCat.cat}`, { permanent: true, direction: 'right', offset: [8, 0] })
-          .addTo(routeLayerGroup);
-      });
-
-      // NOTAM critiques (losange rouge)
-      analyzedNotams.filter(n => n.isImportant).forEach(n => {
-        const diamondIcon = L.divIcon({
-          className: '',
-          html: '<div style="width:12px;height:12px;background:#f43f5e;border:2px solid #ffffff;transform:rotate(45deg);box-shadow:0 0 6px rgba(0,0,0,0.6);"></div>',
-          iconSize: [12, 12],
-          iconAnchor: [6, 6]
+        const mtoColorMap = { emerald: '#10b981', sky: '#0ea5e9', rose: '#f43f5e', fuchsia: '#d946ef' };
+        corridorMto.forEach(st => {
+          const col = mtoColorMap[st.flightCat.color] || '#10b981';
+          L.circleMarker([st.lat, st.lon], {
+            radius: 7,
+            fillColor: col,
+            color: '#0f172a',
+            weight: 2,
+            fillOpacity: 0.95
+          })
+            .bindTooltip(`${st.icao} • ${st.flightCat.cat}`, { permanent: true, direction: 'right', offset: [8, 0] })
+            .addTo(routeLayerGroup);
         });
-        L.marker([n.lat, n.lon], { icon: diamondIcon })
-          .bindTooltip(`${n.id} (${n.qCode})`, { direction: 'top', offset: [0, -6] })
-          .addTo(routeLayerGroup);
-      });
 
-      // Points départ / waypoints / arrivée
-      currentRoutePoints.forEach((pt, idx) => {
-        const isEnd = idx === 0 || idx === currentRoutePoints.length - 1;
-        L.circleMarker([pt.lat, pt.lon], {
-          radius: isEnd ? 8 : 5.5,
-          fillColor: isEnd ? '#ffffff' : '#38bdf8',
-          color: '#0f172a',
-          weight: 2.5,
-          fillOpacity: 1
-        })
-          .bindTooltip(pt.code, { permanent: true, direction: 'top', offset: [0, -8] })
-          .addTo(routeLayerGroup);
-      });
+        analyzedNotams.filter(n => n.isImportant).forEach(n => {
+          const diamondIcon = L.divIcon({
+            className: '',
+            html: '<div style="width:12px;height:12px;background:#f43f5e;border:2px solid #ffffff;transform:rotate(45deg);box-shadow:0 0 6px rgba(0,0,0,0.6);"></div>',
+            iconSize: [12, 12],
+            iconAnchor: [6, 6]
+          });
+          L.marker([n.lat, n.lon], { icon: diamondIcon })
+            .bindTooltip(`${n.id} (${n.qCode})`, { direction: 'top', offset: [0, -6] })
+            .addTo(routeLayerGroup);
+        });
 
-      const bounds = L.latLngBounds(latLngs);
-      corridorMto.forEach(st => bounds.extend([st.lat, st.lon]));
-      leafletMap.fitBounds(bounds.pad(0.28));
-      setTimeout(() => leafletMap.invalidateSize(), 60);
+        currentRoutePoints.forEach((pt, idx) => {
+          const isEnd = idx === 0 || idx === currentRoutePoints.length - 1;
+          L.circleMarker([pt.lat, pt.lon], {
+            radius: isEnd ? 8 : 5.5,
+            fillColor: isEnd ? '#ffffff' : '#38bdf8',
+            color: '#0f172a',
+            weight: 2.5,
+            fillOpacity: 1
+          })
+            .bindTooltip(pt.code, { permanent: true, direction: 'top', offset: [0, -8] })
+            .addTo(routeLayerGroup);
+        });
+
+        const bounds = L.latLngBounds(latLngs);
+        corridorMto.forEach(st => bounds.extend([st.lat, st.lon]));
+        leafletMap.fitBounds(bounds.pad(0.28));
+        setTimeout(() => { if (leafletMap) leafletMap.invalidateSize(); }, 60);
+      } catch (e) {
+        leafletFailed = true;
+        renderFallbackSvgMap();
+      }
     }
 
     window.addEventListener('resize', () => {
-      if (leafletMap) leafletMap.invalidateSize();
+      if (!leafletFailed && leafletMap) leafletMap.invalidateSize();
+      else if (currentRoutePoints.length >= 2) renderFallbackSvgMap();
+    });
+
+    ['depInput', 'wptInput', 'arrInput'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) {
+        el.addEventListener('keydown', e => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            runBriefing();
+          }
+        });
+      }
     });
 
     runBriefing();
