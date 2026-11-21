@@ -236,7 +236,8 @@
       LFST: { name: "Strasbourg-Entzheim", lat: 48.5383, lon: 7.6282, fir: "LFEE", hasTaf: true },
       EGLL: { name: "London-Heathrow", lat: 51.4700, lon: -0.4543, fir: "EGTT", hasTaf: true },
       EGKK: { name: "London-Gatwick", lat: 51.1537, lon: -0.1821, fir: "EGTT", hasTaf: true },
-      LSGG: { name: "Genève-Cointrin", lat: 46.2381, lon: 6.1089, fir: "LSAS", hasTaf: true }
+      LSGG: { name: "Genève-Cointrin", lat: 46.2381, lon: 6.1089, fir: "LSAS", hasTaf: true },
+      LFMD: { name: "Cannes-Mandelieu", lat: 43.5481, lon: 6.9539, fir: "LFMM", hasTaf: true }
     };
 
     const WAYPOINTS = {
@@ -248,8 +249,14 @@
       CLM: { lat: 48.8444, lon: 3.0139 },
       PTV: { lat: 48.1650, lon: 2.2644 },
       LATRA: { lat: 48.4210, lon: 3.0120 },
+      TRO: { lat: 48.3236, lon: 4.0206 },
+      DJL: { lat: 47.2697, lon: 5.0933 },
       MOROK: { lat: 47.4500, lon: 4.1200 },
+      LUS: { lat: 46.3747, lon: 4.9469 },
       MTL: { lat: 44.5500, lon: 4.7300 },
+      AVN: { lat: 43.9056, lon: 4.9019 },
+      MTG: { lat: 43.5733, lon: 5.9806 },
+      STP: { lat: 43.5200, lon: 6.5300 },
       DPE: { lat: 49.9250, lon: 1.1700 },
       SFD: { lat: 50.7600, lon: 0.1210 }
     };
@@ -436,6 +443,47 @@
         console.warn("Lookup station indisponible:", e);
       }
       return null;
+    }
+
+    function computeAutoWaypoints(depIcao, depApt, arrIcao, arrApt) {
+      const totalNm = haversineNm(depApt.lat, depApt.lon, arrApt.lat, arrApt.lon);
+      if (totalNm < 25) return [];
+
+      const avgLat = toRad((depApt.lat + arrApt.lat) / 2);
+      const ax = (arrApt.lon - depApt.lon) * 60 * Math.cos(avgLat);
+      const ay = (arrApt.lat - depApt.lat) * 60;
+      const segLenSq = ax * ax + ay * ay;
+      if (segLenSq === 0) return [];
+
+      const candidates = [];
+      Object.entries(WAYPOINTS).forEach(([code, pt]) => {
+        if (code === depIcao || code === arrIcao) return;
+        const px = (pt.lon - depApt.lon) * 60 * Math.cos(avgLat);
+        const py = (pt.lat - depApt.lat) * 60;
+        const t = (px * ax + py * ay) / segLenSq;
+        if (t <= 0.08 || t >= 0.92) return;
+        const projX = t * ax;
+        const projY = t * ay;
+        const perpDistNm = Math.hypot(px - projX, py - projY);
+        const maxCorridorDev = Math.min(35, Math.max(15, totalNm * 0.12));
+        if (perpDistNm <= maxCorridorDev) {
+          candidates.push({ code, lat: pt.lat, lon: pt.lon, t, perpDistNm });
+        }
+      });
+
+      const desiredCount = Math.min(5, Math.max(1, Math.floor(totalNm / 80)));
+      const selected = [];
+      for (let i = 1; i <= desiredCount; i++) {
+        const targetT = i / (desiredCount + 1);
+        const near = candidates
+          .filter(c => !selected.some(s => s.code === c.code))
+          .sort((a, b) => (Math.abs(a.t - targetT) + a.perpDistNm * 0.01) - (Math.abs(b.t - targetT) + b.perpDistNm * 0.01));
+        if (near.length > 0 && Math.abs(near[0].t - targetT) <= 0.22) {
+          selected.push(near[0]);
+        }
+      }
+
+      return selected.sort((a, b) => a.t - b.t);
     }
 
     function buildDynamicNotams(depIcao, arrIcao, depApt, arrApt, cruiseFl) {
@@ -780,9 +828,16 @@
         return;
       }
 
+      const autoWaypoints = computeAutoWaypoints(depIcao, depApt, arrIcao, arrApt);
+      let effectiveWptStr = wptRaw;
+      if (!wptRaw || wptRaw === "AUTO") {
+        effectiveWptStr = autoWaypoints.map(w => w.code).join(" ");
+        document.getElementById('wptInput').value = effectiveWptStr || "DCT";
+      }
+
       const routePoints = [{ code: depIcao, name: depApt.name, lat: depApt.lat, lon: depApt.lon }];
-      if (wptRaw && wptRaw !== "DCT") {
-        wptRaw.split(/[\s,]+/).forEach(w => {
+      if (effectiveWptStr && effectiveWptStr !== "DCT") {
+        effectiveWptStr.split(/[\s,]+/).forEach(w => {
           if (WAYPOINTS[w]) routePoints.push({ code: w, name: w, lat: WAYPOINTS[w].lat, lon: WAYPOINTS[w].lon });
           else if (AIRPORTS[w]) routePoints.push({ code: w, name: AIRPORTS[w].name, lat: AIRPORTS[w].lat, lon: AIRPORTS[w].lon });
         });
