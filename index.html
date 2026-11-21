@@ -39,7 +39,6 @@
     }
     .wrap { max-width: 1280px; margin: 0 auto; width: 100%; }
     .row-between { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
-    .brand { display: flex; align-items: center; gap: 10px; }
     .badge-live {
       font-size: 11px;
       padding: 2px 8px;
@@ -230,7 +229,7 @@
         </div>
       </div>
       <div style="display:flex;align-items:center;gap:8px;">
-        <button id="btnMode" class="btn-preset mono" onclick="toggleMode()">Source : Direct → Netlify → Démo</button>
+        <button id="btnMode" type="button" class="btn-preset mono" onclick="toggleMode()">Source : Direct → Netlify → Démo</button>
         <div id="utcClock" class="pill mono">--:-- UTC</div>
       </div>
     </div>
@@ -241,19 +240,19 @@
       <div class="grid-form">
         <div>
           <label>Départ (ou LFPN-LFPM)</label>
-          <input id="depInput" class="mono" type="text" value="LFPN" />
+          <input id="depInput" class="mono" type="text" value="LFPN" onkeydown="if(event.key==='Enter') runBriefing()" />
         </div>
         <div>
           <label>Waypoints</label>
-          <input id="wptInput" class="mono" type="text" value="RBT MEL" />
+          <input id="wptInput" class="mono" type="text" value="RBT MEL" onkeydown="if(event.key==='Enter') runBriefing()" />
         </div>
         <div>
           <label>Arrivée</label>
-          <input id="arrInput" class="mono" type="text" value="LFPM" />
+          <input id="arrInput" class="mono" type="text" value="LFPM" onkeydown="if(event.key==='Enter') runBriefing()" />
         </div>
         <div>
           <label>Altitude / Niveau</label>
-          <select id="flInput" class="mono">
+          <select id="flInput" class="mono" onchange="runBriefing()">
             <option value="15" selected>1 500 ft (VFR Bas)</option>
             <option value="25">2 500 ft (VFR)</option>
             <option value="45">4 500 ft (VFR)</option>
@@ -266,20 +265,21 @@
         <div>
           <label>Marge : <span id="corridorLabel" class="mono" style="color:var(--sky)">20 NM</span></label>
           <input id="corridorSlider" type="range" min="10" max="100" step="5" value="20"
-            oninput="document.getElementById('corridorLabel').textContent = this.value + ' NM'" />
+            oninput="document.getElementById('corridorLabel').textContent = this.value + ' NM'"
+            onchange="runBriefing()" />
         </div>
         <div>
-          <button class="btn-primary" style="width:100%" onclick="runBriefing()">Analyser la route</button>
+          <button type="button" class="btn-primary" style="width:100%" onclick="runBriefing()">Analyser la route</button>
         </div>
       </div>
 
       <div class="row-between" style="margin-top:10px;font-size:12px;">
         <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;">
           <span style="color:var(--muted)">Essais rapides :</span>
-          <button class="btn-preset mono" onclick="preset('LFPN','RBT MEL','LFPM','15',20)">LFPN → LFPM</button>
-          <button class="btn-preset mono" onclick="preset('LFPN','CHW BNE','LFPZ','25',20)">LFPN → LFPZ</button>
-          <button class="btn-preset mono" onclick="preset('LFPG','LATRA MOROK MTL','LFMN','350',40)">LFPG → LFMN</button>
-          <button class="btn-preset mono" onclick="preset('LFPO','DPE SFD','EGLL','280',45)">LFPO → EGLL</button>
+          <button type="button" class="btn-preset mono" onclick="preset('LFPN','RBT MEL','LFPM','15',20)">LFPN → LFPM</button>
+          <button type="button" class="btn-preset mono" onclick="preset('LFPN','CHW BNE','LFPZ','25',20)">LFPN → LFPZ</button>
+          <button type="button" class="btn-preset mono" onclick="preset('LFPG','LATRA MOROK MTL','LFMN','350',40)">LFPG → LFMN</button>
+          <button type="button" class="btn-preset mono" onclick="preset('LFPO','DPE SFD','EGLL','280',45)">LFPO → EGLL</button>
         </div>
         <div id="routeInfo" class="mono" style="color:var(--muted)"></div>
       </div>
@@ -326,9 +326,9 @@
 
       <div class="tabs">
         <div style="display:flex;flex-wrap:wrap;gap:6px;">
-          <button id="tabCrit" class="tab-btn active red" onclick="setFilter('crit')">Critiques uniquement (Rouge)</button>
-          <button id="tabAll" class="tab-btn" onclick="setFilter('all')">Tous les NOTAM</button>
-          <button id="tabFilt" class="tab-btn" onclick="setFilter('filt')">Masqués (Bruit)</button>
+          <button id="tabCrit" type="button" class="tab-btn active red" onclick="setFilter('crit')">Critiques uniquement (Rouge)</button>
+          <button id="tabAll" type="button" class="tab-btn" onclick="setFilter('all')">Tous les NOTAM</button>
+          <button id="tabFilt" type="button" class="tab-btn" onclick="setFilter('filt')">Masqués (Bruit)</button>
         </div>
         <label style="margin:0;display:flex;align-items:center;gap:6px;text-transform:none;font-size:12px;color:var(--muted);cursor:pointer;">
           <input id="chkRaw" type="checkbox" onchange="renderAll()" />
@@ -436,6 +436,7 @@
     }
 
     function distToAxisNm(lat, lon, pts) {
+      if (!Array.isArray(pts) || pts.length < 2) return 0;
       let best = Infinity;
       for (let i = 0; i < pts.length - 1; i++) {
         const latAvg = toRad((pts[i].lat + pts[i + 1].lat) / 2);
@@ -448,10 +449,11 @@
         const d = Math.hypot(x - t * dx, y - t * dy);
         if (d < best) best = d;
       }
-      return best;
+      return Number.isFinite(best) ? best : 0;
     }
 
     function decodePhenomena(str) {
+      if (!str) return "";
       const list = [];
       if (/\b\+TSRA\b/.test(str)) list.push("Orage fort + pluie forte");
       else if (/\bTSRA\b/.test(str)) list.push("Orage + pluie");
@@ -469,37 +471,233 @@
 
     function decodeMetar(raw) {
       if (!raw) return ["Aucune observation disponible"];
-      const out = [];
-      const w = raw.match(/\b(VRB|\d{3})(\d{2,3})(?:G(\d{2,3}))?KT\b/);
-      if (w) {
-        out.push(`Vent : ${w[1] === "VRB" ? "Variable" : w[1] + "°"} pour ${parseInt(w[2], 10)} kt${w[3] ? " (rafales " + parseInt(w[3], 10) + " kt)" : ""}`);
-      }
-      if (/\bCAVOK\b/.test(raw)) {
-        out.push("Visibilité ≥ 10 km, pas de nuages < 5 000 ft ni CB");
-      } else {
-        const v = raw.match(/\s(\d{4})\s/);
-        if (v) {
-          const m = parseInt(v[1], 10);
-          out.push(`Visibilité : ${m >= 9999 ? "10 km ou plus" : (m / 1000).toFixed(1).replace(".0", "") + " km"}`); } } const ph = decodePhenomena(raw); if (ph) out.push(`Phénomènes : ${ph}`);
+      try {
+        const out = [];
+        const w = raw.match(/\b(VRB|\d{3})(\d{2,3})(?:G(\d{2,3}))?KT\b/);
+        if (w) {
+          out.push(`Vent : ${w[1] === "VRB" ? "Variable" : w[1] + "°"} pour ${parseInt(w[2], 10)} kt${w[3] ? " (rafales " + parseInt(w[3], 10) + " kt)" : ""}`);
+        }
+        if (/\bCAVOK\b/.test(raw)) {
+          out.push("Visibilité ≥ 10 km, pas de nuages < 5 000 ft ni CB");
+        } else {
+          const v = raw.match(/\s(\d{4})\s/);
+          if (v) {
+            const m = parseInt(v[1], 10);
+            out.push(`Visibilité : ${m >= 9999 ? "10 km ou plus" : (m / 1000).toFixed(1).replace(".0", "") + " km"}`);
+          }
+        }
+        const ph = decodePhenomena(raw);
+        if (ph) out.push(`Phénomènes : ${ph}`);
 
-      const clouds = [...raw.matchAll(/\b(FEW|SCT|BKN|OVC|VV)(\d{3})(CB|TCU)?\b/g)];
-      if (clouds.length) {
-        const mapC = { FEW: "Quelques", SCT: "Épars", BKN: "Fragmenté", OVC: "Couvert", VV: "Visibilité verticale" };
-        out.push("Nuages : " + clouds.map(c => `${mapC[c[1]] \vert{}\vert{} c[1]}${parseInt(c[2], 10) * 100} ft${c[3] ? " [" + c[3] + "]" : ""}`).join(" • ")); } const td = raw.match(/\s(M?\d{2})\/(M?\d{2})\b/); if (td) { const t = parseInt(td[1].replace("M", "-"), 10); const d = parseInt(td[2].replace("M", "-"), 10); out.push(`Température / Rosée : ${t}°C / ${d}°C`); } const q = raw.match(/\bQ(\d{4})\b/); if (q) out.push(`QNH : ${parseInt(q[1], 10)} hPa`);
-      return out.length ? out : [raw];
+        const clouds = [...raw.matchAll(/\b(FEW|SCT|BKN|OVC|VV)(\d{3})(CB|TCU)?\b/g)];
+        if (clouds.length) {
+          const mapC = { FEW: "Quelques", SCT: "Épars", BKN: "Fragmenté", OVC: "Couvert", VV: "Visibilité verticale" };
+          out.push("Nuages : " + clouds.map(c => `${mapC[c[1]] || c[1]} ${parseInt(c[2], 10) * 100} ft${c[3] ? " [" + c[3] + "]" : ""}`).join(" • "));
+        }
+        const td = raw.match(/\s(M?\d{2})\/(M?\d{2})\b/);
+        if (td) {
+          const t = parseInt(td[1].replace("M", "-"), 10);
+          const d = parseInt(td[2].replace("M", "-"), 10);
+          out.push(`Température / Rosée : ${t}°C / ${d}°C`);
+        }
+        const q = raw.match(/\bQ(\d{4})\b/);
+        if (q) out.push(`QNH : ${parseInt(q[1], 10)} hPa`);
+        return out.length ? out : [raw];
+      } catch (_) {
+        return [raw];
+      }
     }
 
     function decodeTaf(raw) {
       if (!raw) return null;
-      const lines = [];
-      const val = raw.match(/\b(\d{2})(\d{2})\/(\d{2})(\d{2})\b/);
-      if (val) lines.push(`Validité : du ${val[1]} à ${val[2]}h UTC au ${val[3]} à ${val[4]}h UTC`);
-      const base = decodeMetar(raw);
-      if (base.length) lines.push("Base : " + base.join(" | "));
-      const evs = [...raw.matchAll(/\b(BECMG|TEMPO|PROB\d{2})\s+([^\n]+?)(?=\s+(?:BECMG|TEMPO|PROB\d{2}|FM\d{6})|$)/g)];
-      evs.forEach(e => {
-        const body = e[2].trim();
-        const slot = body.match(/^(\d{4}\/\d{4})\s*(.*)/);
-        const desc = decodeMetar("METAR XXXX 000000Z " + (slot ? slot[2] : body)).join(" • ");
-        const ph = decodePhenomena(body);
-        lines.push(`${e[1]}${slot ? " [" + slot[1
+      try {
+        const lines = [];
+        const val = raw.match(/\b(\d{2})(\d{2})\/(\d{2})(\d{2})\b/);
+        if (val) lines.push(`Validité : du ${val[1]} à ${val[2]}h UTC au ${val[3]} à ${val[4]}h UTC`);
+        const base = decodeMetar(raw);
+        if (base.length) lines.push("Base : " + base.join(" | "));
+        const evs = [...raw.matchAll(/\b(BECMG|TEMPO|PROB\d{2})\s+([^\n]+?)(?=\s+(?:BECMG|TEMPO|PROB\d{2}|FM\d{6})|$)/g)];
+        evs.forEach(e => {
+          const body = e[2].trim();
+          const slot = body.match(/^(\d{4}\/\d{4})\s*(.*)/);
+          const desc = decodeMetar("METAR XXXX 000000Z " + (slot ? slot[2] : body)).join(" • ");
+          const ph = decodePhenomena(body);
+          lines.push(`${e[1]}${slot ? " [" + slot[1] + "]" : ""} : ${desc}${ph ? " (" + ph + ")" : ""}`);
+        });
+        return lines;
+      } catch (_) {
+        return [raw];
+      }
+    }
+
+    function getCat(raw) {
+      if (!raw) return { code: "VFR", cls: "vfr" };
+      const visM = raw.match(/\s(\d{4})\s/);
+      const vis = raw.includes("CAVOK") ? 9999 : (visM ? parseInt(visM[1], 10) : 9999);
+      const cigM = [...raw.matchAll(/(?:BKN|OVC|VV)(\d{3})/g)];
+      const cig = cigM.length ? Math.min(...cigM.map(x => parseInt(x[1], 10) * 100)) : 9999;
+      if (cig < 500 || vis < 1600) return { code: "LIFR", cls: "ifr" };
+      if (cig < 1000 || vis < 5000) return { code: "IFR", cls: "ifr" };
+      if (cig <= 3000 || vis <= 8000) return { code: "MVFR", cls: "mvfr" };
+      return { code: "VFR", cls: "vfr" };
+    }
+
+    function sampleMto(icao) {
+      const bank = {
+        LFPN: { metar: "METAR LFPN 211530Z 24008KT 9999 FEW038 11/05 Q1021 NOSIG", taf: null },
+        LFPM: { metar: "METAR LFPM 211530Z 23009KT 9999 SCT042 11/04 Q1021 NOSIG", taf: null },
+        LFPO: { metar: "METAR LFPO 211530Z 24010KT 9999 SCT040 12/05 Q1021 NOSIG", taf: "TAF LFPO 211400Z 2115/2218 24010KT 9999 SCT040 TEMPO 2118/2122 4500 -RA BKN018" },
+        LFPG: { metar: "METAR LFPG 211530Z 24012KT 9999 SCT042 11/04 Q1021 NOSIG", taf: "TAF LFPG 211400Z 2115/2218 24012KT 9999 SCT045" },
+        LFMN: { metar: "METAR LFMN 211530Z 14008KT CAVOK 17/08 Q1023 NOSIG", taf: "TAF LFMN 211400Z 2115/2218 14010KT CAVOK" },
+        EGLL: { metar: "METAR EGLL 211530Z 25015G24KT 5000 -RA BKN014 09/07 Q1012", taf: "TAF EGLL 211400Z 2115/2218 25016G25KT 5000 -RA BKN012" }
+      };
+      return bank[icao] || {
+        metar: `METAR ${icao} 211530Z 24009KT 9999 SCT038 11/05 Q1020 NOSIG`,
+        taf: `TAF ${icao} 211400Z 2115/2218 24010KT 9999 SCT038`
+      };
+    }
+
+    async function fetchJsonWithTimeout(url, timeoutMs = 2500) {
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+      try {
+        const res = await fetch(url, { signal: ctrl.signal });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return await res.json();
+      } finally {
+        clearTimeout(timer);
+      }
+    }
+
+    async function fetchWeatherWithFallback(ids) {
+      try {
+        const [mDirect, tDirect] = await Promise.allSettled([
+          fetchJsonWithTimeout(`https://aviationweather.gov/api/data/metar?ids=${ids}&format=json`),
+          fetchJsonWithTimeout(`https://aviationweather.gov/api/data/taf?ids=${ids}&format=json`)
+        ]);
+        const mVal = mDirect.status === "fulfilled" && Array.isArray(mDirect.value) ? mDirect.value : [];
+        const tVal = tDirect.status === "fulfilled" && Array.isArray(tDirect.value) ? tDirect.value : [];
+        if (mVal.length > 0 || tVal.length > 0) {
+          return { metars: mVal, tafs: tVal, source: "direct" };
+        }
+      } catch (_) {}
+
+      try {
+        const [mFn, tFn] = await Promise.allSettled([
+          fetchJsonWithTimeout(`/.netlify/functions/weather?type=metar&ids=${ids}`),
+          fetchJsonWithTimeout(`/.netlify/functions/weather?type=taf&ids=${ids}`)
+        ]);
+        const mVal = mFn.status === "fulfilled" && Array.isArray(mFn.value) ? mFn.value : [];
+        const tVal = tFn.status === "fulfilled" && Array.isArray(tFn.value) ? tFn.value : [];
+        if (mVal.length > 0 || tVal.length > 0) {
+          return { metars: mVal, tafs: tVal, source: "netlify" };
+        }
+      } catch (_) {}
+
+      return { metars: [], tafs: [], source: "fallback" };
+    }
+
+    async function loadMto(pts, corr, depCode, arrCode) {
+      const cand = Object.entries(AIRPORTS)
+        .map(([icao, a]) => ({ icao, ...a, dAxis: distToAxisNm(a.lat, a.lon, pts) }))
+        .filter(s => s.dAxis <= corr || s.icao === depCode || s.icao === arrCode || s.icao === "LFPO")
+        .sort((a, b) => a.dAxis - b.dAxis)
+        .slice(0, 6);
+
+      const liveMetar = {};
+      const liveTaf = {};
+      let sourceUsed = "fallback";
+
+      if (autoLive) {
+        const ids = cand.map(s => s.icao).join(",");
+        const res = await fetchWeatherWithFallback(ids);
+        sourceUsed = res.source;
+        res.metars.forEach(x => { if (x && x.icaoId && x.rawOb) liveMetar[x.icaoId] = x.rawOb; });
+        res.tafs.forEach(x => { if (x && x.icaoId && x.rawTAF) liveTaf[x.icaoId] = x.rawTAF; });
+      }
+
+      if (sourceUsed === "direct") {
+        setBanner("MTO en direct depuis AviationWeather.gov, décodée en clair.");
+      } else if (sourceUsed === "netlify") {
+        setBanner("Repli automatique sur /.netlify/functions/weather, décodée en clair.");
+      } else {
+        setBanner("Données météo de référence affichées (mode démo ou flux live injoignable).");
+      }
+
+      const refTaf = liveTaf[arrCode] || liveTaf[depCode] || liveTaf.LFPO || sampleMto("LFPO").taf;
+      const refTafSrc = liveTaf[arrCode] ? arrCode : (liveTaf[depCode] ? depCode : "LFPO");
+
+      return cand.map(s => {
+        const metar = liveMetar[s.icao] || sampleMto(s.icao).metar;
+        const taf = liveTaf[s.icao] || (s.icao === depCode || s.icao === arrCode ? refTaf : null);
+        const note = !liveTaf[s.icao] && taf ? `TAF station de référence (${refTafSrc})` : null;
+        return {
+          ...s,
+          metar,
+          taf,
+          note,
+          cat: getCat(metar),
+          metarDec: decodeMetar(metar),
+          tafDec: decodeTaf(taf)
+        };
+      });
+    }
+
+    function buildNotams(dep, arr, depApt, arrApt, fl, pts, corr) {
+      const mLat = (depApt.lat + arrApt.lat) / 2;
+      const mLon = (depApt.lon + arrApt.lon) / 2;
+      const raw = [
+        { id: "A4812/26", q: "QFAXX", lfl: 0, ufl: 45, lat: depApt.lat, lon: depApt.lon, r: 5, a: dep, e: `AD ${dep} (${depApt.name}) : ACTIVITÉ TOUR DE PISTE ET VOLTIGE LOCALE. CONTACTER TWR / INFO AVANT PÉNÉTRATION CTR.` },
+        { id: "A4819/26", q: "QMRLC", lfl: 0, ufl: 30, lat: arrApt.lat, lon: arrApt.lon, r: 5, a: arr, e: `AD ${arr} (${arrApt.name}) : BANDE HERBE / PISTE SECONDAIRE FERMÉE POUR TRAVAUX. PISTE REVÊTUE EN SERVICE UNIQUEMENT.` },
+        { id: "W2104/26", q: "QRTCA", lfl: 0, ufl: 65, lat: mLat + 0.03, lon: mLon - 0.02, r: 8, a: "LFFF", e: "ZONE RÉGLEMENTÉE TEMPORAIRE (ZRT) ACTIVÉE SUR L'AXE DE ROUTE (DRONES / SÉCURITÉ CIVILE). CONTOURNEMENT IMPÉRATIF." },
+        { id: "B1109/26", q: "QWELW", lfl: 0, ufl: 115, lat: mLat - 0.05, lon: mLon + 0.04, r: 10, a: "LFFF", e: "ACTIVITÉ PARACHUTAGE SIGNALÉE PRÈS DU COULOIR DU SOL AU FL115. VEILLE FRÉQUENCE SIV RECOMMANDÉE." },
+        { id: "A4901/26", q: "QICAS", lfl: 0, ufl: 50, lat: arrApt.lat, lon: arrApt.lon, r: 10, a: arr, e: `AIDE D'APPROCHE / PAPI ${arr} EN MAINTENANCE PARTIELLE. APPROCHE À VUE EN CONDITIONS VMC.` },
+        { id: "C0982/26", q: "QOBCE", lfl: 0, ufl: 12, lat: depApt.lat + 0.03, lon: depApt.lon + 0.03, r: 3, a: dep, e: `GRUE MOBILE À 2.8 NM EST DE ${dep}, HAUTEUR 115 FT AGL, BALISÉE.` },
+        { id: "A5110/26", q: "QNVAS", lfl: 195, ufl: 660, lat: mLat, lon: mLon, r: 40, a: "LFFF", e: "ESPACE SUPÉRIEUR : MODIFICATION ROUTE ATS AU-DESSUS DU FL195." },
+        { id: "D0412/26", q: "QMXLC", lfl: 0, ufl: 5, lat: arrApt.lat, lon: arrApt.lon, r: 2, a: arr, e: `TAXIWAY SUD ${arr} FERMÉ POUR REPEINTURE MARQUAGE.` }
+      ];
+
+      return raw.map(n => {
+        const rule = Q_RULES[n.q] || { cat: "INFO", label: "Information", score: 40, crit: false };
+        const dAxis = distToAxisNm(n.lat, n.lon, pts);
+        const inCorr = dAxis <= corr + n.r;
+        const altOk = fl >= n.lfl - 15 && fl <= n.ufl + 15;
+        const term = n.a === dep || n.a === arr;
+        let sc = rule.score + (term ? 12 : 0) - (inCorr ? 0 : 45) - (altOk ? 0 : 35);
+        if (n.q === "QOBCE" || n.q === "QMXLC") sc = Math.min(sc, 45);
+        sc = Math.max(0, Math.min(100, sc));
+        const reasons = [
+          `${dAxis.toFixed(1)} NM de l'axe`,
+          `FL${n.lfl}–FL${n.ufl}`,
+          inCorr ? "Dans la marge" : "Hors marge",
+          altOk ? "Tranche altitude OK" : "Hors altitude"
+        ];
+        return { ...n, ...rule, dAxis, score: sc, critical: sc >= 65 && (inCorr || term), reasons };
+      }).sort((a, b) => b.score - a.score);
+    }
+
+    async function runBriefing() {
+      try {
+        let dep = (document.getElementById("depInput").value || "LFPN").trim().toUpperCase();
+        let arr = (document.getElementById("arrInput").value || "LFPM").trim().toUpperCase();
+        if (dep.includes("-") || dep.includes("/") || dep.includes(">")) {
+          const p = dep.split(/[-\/>]+/).map(s => s.trim()).filter(Boolean);
+          if (p.length >= 2) {
+            dep = p[0];
+            arr = p[p.length - 1];
+            document.getElementById("depInput").value = dep;
+            document.getElementById("arrInput").value = arr;
+          }
+        }
+        const wptStr = (document.getElementById("wptInput").value || "").trim().toUpperCase();
+        const fl = parseInt(document.getElementById("flInput").value, 10) || 15;
+        corridorNm = parseInt(document.getElementById("corridorSlider").value, 10) || 20;
+
+        const depApt = AIRPORTS[dep] || { name: dep, lat: 48.75, lon: 2.10, fir: "LFFF" };
+        const arrApt = AIRPORTS[arr] || { name: arr, lat: 48.60, lon: 2.67, fir: "LFFF" };
+
+        routePts = [{ code: dep, name: depApt.name, lat: depApt.lat, lon: depApt.lon }];
+        if (wptStr && wptStr !== "DCT") {
+          wptStr.split(/[\s,]+/).forEach(w => {
+            if (WAYPOINTS[w]) routePts.push({ code: w, name: w, lat: WAYPOINTS[w].lat, lon: WAYPOINTS[w].lon });
+            else if (AIRPORTS[w]) routePts.push({ code: w, name: AIRPORTS[w].name, lat: AIR
