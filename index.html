@@ -3,8 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>RouteBriefing — NOTAM & MTO Aero</title>
+  <title>AeroRouteBriefing — NOTAM & MTO Aero</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
@@ -34,21 +36,14 @@
             <path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/>
           </svg>
         </div>
-        <div>
-          <div class="flex items-center gap-2">
-            <h1 class="font-bold text-base tracking-tight text-white">RouteBriefing</h1>
-            <span class="text-[10px] font-mono-aero uppercase px-2 py-0.5 rounded bg-sky-500/15 text-sky-400 border border-sky-500/30">NETLIFY EDGE • LIVE MTO</span>
-          </div>
-          <p class="text-xs text-slate-400">Triage NOTAM OACI & METAR/TAF sur couloir de route</p>
-        </div>
+        <h1 class="font-bold text-base tracking-tight text-white">AeroRouteBriefing</h1>
       </div>
 
       <div class="flex items-center gap-3">
-        <div class="flex items-center gap-2 bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5">
-          <span class="text-xs text-slate-400">Source MTO :</span>
-          <button id="btnSourceLive" onclick="setMtoMode('live')" class="text-xs font-medium px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 transition">Live API</button>
-          <button id="btnSourceSim" onclick="setMtoMode('sim')" class="text-xs font-medium px-2 py-0.5 rounded text-slate-400 hover:text-white transition">Simulation</button>
-        </div>
+        <span id="headerLiveBadge" class="font-mono-aero text-xs px-3 py-1.5 rounded-lg bg-emerald-500/15 text-emerald-300 border border-emerald-500/40 font-semibold flex items-center gap-1.5">
+          <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+          DONNÉES LIVE
+        </span>
         <div id="utcClock" class="font-mono-aero text-xs bg-slate-950 border border-slate-800 px-3 py-1.5 rounded-lg text-sky-400 font-semibold">
           --:-- UTC
         </div>
@@ -63,95 +58,95 @@
         <div class="md:col-span-2">
           <label class="block text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-1">Départ (OACI / Route)</label>
           <input id="depInput" type="text" value="LFPN" maxlength="12" placeholder="LFPN ou LFPN-LFPM"
-            class="w-full font-mono-aero uppercase bg-slate-950 border border-slate-700 focus:border-sky-500 focus:outline-none rounded-lg px-3 py-2 text-sm text-white font-bold tracking-wider" />
+            class="h-[42px] w-full font-mono-aero uppercase bg-slate-950 border border-slate-700 focus:border-sky-500 focus:outline-none rounded-lg px-3 text-sm text-white font-bold tracking-wider" />
         </div>
 
-        <div class="md:col-span-3">
+        <div class="md:col-span-2">
           <label class="block text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-1">Waypoints / Route</label>
           <input id="wptInput" type="text" value="RBT MEL" placeholder="Ex: RBT MEL ou DCT"
-            class="w-full font-mono-aero uppercase bg-slate-950 border border-slate-700 focus:border-sky-500 focus:outline-none rounded-lg px-3 py-2 text-sm text-slate-200" />
+            class="h-[42px] w-full font-mono-aero uppercase bg-slate-950 border border-slate-700 focus:border-sky-500 focus:outline-none rounded-lg px-3 text-sm text-slate-200 font-bold" />
         </div>
 
         <div class="md:col-span-2">
           <label class="block text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-1">Arrivée (OACI)</label>
           <input id="arrInput" type="text" value="LFPM" maxlength="4" placeholder="LFPM"
-            class="w-full font-mono-aero uppercase bg-slate-950 border border-slate-700 focus:border-sky-500 focus:outline-none rounded-lg px-3 py-2 text-sm text-white font-bold tracking-wider" />
+            class="h-[42px] w-full font-mono-aero uppercase bg-slate-950 border border-slate-700 focus:border-sky-500 focus:outline-none rounded-lg px-3 text-sm text-white font-bold tracking-wider" />
         </div>
 
         <div class="md:col-span-2">
           <label class="block text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-1">Altitude / Niveau</label>
-          <select id="flInput" class="w-full font-mono-aero bg-slate-950 border border-slate-700 focus:border-sky-500 focus:outline-none rounded-lg px-3 py-2 text-sm text-white">
-            <option value="15" selected>1 500 ft (VFR Bas)</option>
-            <option value="25">2 500 ft (VFR)</option>
-            <option value="45">4 500 ft (VFR)</option>
-            <option value="85">FL085 (IFR Bas)</option>
+          <select id="flInput" class="h-[42px] w-full font-mono-aero bg-slate-950 border border-slate-700 focus:border-sky-500 focus:outline-none rounded-lg px-3 text-sm text-white font-bold">
+            <option value="15" selected>1500FT</option>
+            <option value="25">2500FT</option>
+            <option value="45">4500FT</option>
+            <option value="85">FL085</option>
             <option value="180">FL180</option>
             <option value="280">FL280</option>
-            <option value="350">FL350 (Croisière)</option>
+            <option value="350">FL350</option>
           </select>
         </div>
 
-        <div class="md:col-span-3 flex flex-col gap-1">
-          <div class="flex justify-between text-[11px]">
-            <span class="uppercase tracking-wider text-slate-400 font-semibold">Marge latérale</span>
-            <span id="corridorVal" class="font-mono-aero text-sky-400 font-bold">20 NM</span>
-          </div>
-          <div class="flex items-center gap-3">
-            <input id="corridorSlider" type="range" min="10" max="100" step="5" value="20" class="w-full cursor-pointer"
-              oninput="document.getElementById('corridorVal').textContent = this.value + ' NM'" />
-            <button id="btnAnalyze" onclick="runBriefing()" class="shrink-0 bg-sky-500 hover:bg-sky-400 text-slate-950 font-semibold text-sm px-4 py-2 rounded-lg transition shadow-lg shadow-sky-500/20 flex items-center gap-1.5">
-              <span>Générer</span>
-            </button>
-          </div>
+        <div class="md:col-span-2">
+          <label class="block text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-1">Marge latérale</label>
+          <select id="corridorSelect" class="h-[42px] w-full font-mono-aero bg-slate-950 border border-slate-700 focus:border-sky-500 focus:outline-none rounded-lg px-3 text-sm text-white font-bold">
+            <option value="5">5 NM</option>
+            <option value="10">10 NM</option>
+            <option value="15">15 NM</option>
+            <option value="20" selected>20 NM</option>
+            <option value="25">25 NM</option>
+            <option value="30">30 NM</option>
+            <option value="35">35 NM</option>
+            <option value="40">40 NM</option>
+            <option value="45">45 NM</option>
+            <option value="50">50 NM</option>
+          </select>
+        </div>
+
+        <div class="md:col-span-2">
+          <label class="block text-[11px] uppercase tracking-wider text-transparent font-semibold mb-1 select-none">Action</label>
+          <button id="btnAnalyze" onclick="runBriefing()" class="h-[42px] w-full bg-sky-500 hover:bg-sky-400 text-slate-950 font-semibold text-sm px-4 rounded-lg transition shadow-lg shadow-sky-500/20 flex items-center justify-center gap-1.5">
+            <span>Générer</span>
+          </button>
         </div>
       </div>
 
-      <!-- Presets & Status -->
-      <div class="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs">
-        <div class="flex flex-wrap items-center gap-2">
-          <span class="text-slate-500">Routes tests :</span>
-          <button onclick="loadPreset('LFPN', 'RBT MEL', 'LFPM', '15', 20)" class="font-mono-aero px-2 py-0.5 rounded bg-sky-500/15 hover:bg-sky-500/25 text-sky-300 border border-sky-500/30">LFPN → LFPM (VFR)</button>
-          <button onclick="loadPreset('LFPN', 'CHW BNE', 'LFPZ', '25', 20)" class="font-mono-aero px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700">LFPN → LFPZ (VFR)</button>
-          <button onclick="loadPreset('LFPG', 'LATRA MOROK MTL', 'LFMN', '350', 40)" class="font-mono-aero px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700">LFPG → LFMN (IFR)</button>
-          <button onclick="loadPreset('LFPO', 'DPE SFD', 'EGLL', '280', 45)" class="font-mono-aero px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700">LFPO → EGLL (IFR)</button>
-        </div>
-        <div id="routeSummaryBadge" class="font-mono-aero text-slate-400"></div>
+      <div class="mt-2.5 flex justify-center text-xs">
+        <div id="routeSummaryBadge" class="font-mono-aero text-slate-300 text-center"></div>
       </div>
-      <div id="statusBanner" class="hidden mt-2 text-xs font-mono-aero px-3 py-1.5 rounded-lg border"></div>
     </div>
   </section>
 
   <!-- MAIN CONTENT GRID -->
-  <main class="max-w-7xl mx-auto w-full px-4 py-5 grid grid-cols-1 lg:grid-cols-12 gap-5 flex-1">
+  <main class="max-w-7xl mx-auto w-full px-4 py-5 flex flex-col gap-5 flex-1">
 
-    <!-- LEFT COLUMN: MAP & METAR/TAF -->
-    <div class="lg:col-span-5 flex flex-col gap-5">
-      <!-- Route Map Visualization -->
-      <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
-        <div class="px-4 py-2.5 border-b border-slate-800 flex items-center justify-between">
-          <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-300 flex items-center gap-2">
-            <span class="w-2 h-2 rounded-full bg-sky-400"></span>
-            Couloir & Stations MTO / NOTAM
-          </h2>
-          <span id="distanceTag" class="font-mono-aero text-xs text-slate-400">-- NM</span>
-        </div>
-        <div class="relative bg-[#060a12] p-2">
-          <canvas id="routeCanvas" width="520" height="260" class="w-full h-56 rounded-lg"></canvas>
-          <div class="mt-2 px-2 pb-1 flex flex-wrap items-center justify-between text-[11px] text-slate-400 gap-2">
-            <div class="flex items-center gap-3">
-              <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-emerald-400 inline-block"></span> VFR</span>
-              <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-sky-400 inline-block"></span> MVFR</span>
-              <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-rose-500 inline-block"></span> IFR/LIFR</span>
-            </div>
-            <div class="flex items-center gap-2">
-              <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rotate-45 bg-amber-400 inline-block"></span> NOTAM Critique</span>
-            </div>
+    <!-- FULL WIDTH ROUTE MAP WITH TERRAIN & CITIES -->
+    <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden w-full">
+      <div class="px-4 py-2.5 border-b border-slate-800 flex items-center justify-between">
+        <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-300 flex items-center gap-2">
+          <span class="w-2 h-2 rounded-full bg-sky-400"></span>
+          Couloir de route, relief & villes (MTO / NOTAM)
+        </h2>
+        <span id="distanceTag" class="font-mono-aero text-xs text-slate-400">-- NM</span>
+      </div>
+      <div class="relative bg-[#07110e] p-3">
+        <div id="routeMap" class="w-full h-80 md:h-[420px] rounded-lg overflow-hidden border border-slate-800/80 z-10"></div>
+        <div class="mt-2.5 px-2 pb-1 flex flex-wrap items-center justify-between text-[11px] text-slate-400 gap-2">
+          <div class="flex items-center gap-4">
+            <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-emerald-400 inline-block"></span> VFR</span>
+            <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-sky-400 inline-block"></span> MVFR</span>
+            <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-rose-500 inline-block"></span> IFR/LIFR</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rotate-45 bg-rose-500 inline-block"></span> NOTAM Critique</span>
           </div>
         </div>
       </div>
+    </div>
 
-      <!-- METAR / TAF CORRIDOR FEED -->
-      <div class="bg-slate-900 border border-slate-800 rounded-xl flex flex-col flex-1">
+    <!-- TWO COLUMNS BELOW: METAR/TAF + NOTAM -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+      <!-- LEFT COLUMN: METAR / TAF CORRIDOR FEED -->
+      <div class="lg:col-span-5 bg-slate-900 border border-slate-800 rounded-xl flex flex-col">
         <div class="px-4 py-3 border-b border-slate-800 flex items-center justify-between">
           <div>
             <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-300">METAR & TAF sur la route</h2>
@@ -159,12 +154,11 @@
           </div>
           <span id="mtoCountBadge" class="font-mono-aero text-xs px-2 py-0.5 rounded bg-slate-800 text-slate-300">0 stations</span>
         </div>
-        <div id="mtoContainer" class="p-3 space-y-3 max-h-[600px] overflow-y-auto"></div>
+        <div id="mtoContainer" class="p-3 space-y-3"></div>
       </div>
-    </div>
 
-    <!-- RIGHT COLUMN: INTELLIGENT NOTAM TRIAGE -->
-    <div class="lg:col-span-7 flex flex-col gap-4">
+      <!-- RIGHT COLUMN: INTELLIGENT NOTAM TRIAGE -->
+      <div class="lg:col-span-7 flex flex-col gap-4">
       <div class="grid grid-cols-3 gap-3">
         <div class="bg-slate-900 border border-slate-800 rounded-xl p-3">
           <div class="text-[11px] text-slate-400 uppercase font-semibold">NOTAM Analysés</div>
@@ -203,6 +197,7 @@
       </div>
 
       <div id="notamContainer" class="space-y-3"></div>
+      </div>
     </div>
   </main>
 
@@ -287,7 +282,20 @@
     setInterval(updateClock, 1000);
     updateClock();
 
-    function showBanner(msg, type = 'info') {
+    function setLiveStatus(isLive, text) {
+      const el = document.getElementById('headerLiveBadge');
+      if (!el) return;
+      if (isLive) {
+        el.className = "font-mono-aero text-xs px-3 py-1.5 rounded-lg bg-emerald-500/15 text-emerald-300 border border-emerald-500/40 font-semibold flex items-center gap-1.5";
+        el.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-400"></span>${text || 'DONNÉES LIVE'}`;
+      } else {
+        el.className = "font-mono-aero text-xs px-3 py-1.5 rounded-lg bg-amber-500/15 text-amber-300 border border-amber-500/40 font-semibold flex items-center gap-1.5";
+        el.innerHTML = `<span class="w-2 h-2 rounded-full bg-amber-400"></span>${text || 'MODE SIMULATION'}`;
+      }
+    }
+
+    function showBanner() {}
+    function _unusedBanner(msg, type = 'info') {
       const el = document.getElementById('statusBanner');
       if (!msg) { el.classList.add('hidden'); return; }
       el.classList.remove('hidden', 'bg-amber-500/10', 'border-amber-500/30', 'text-amber-300', 'bg-sky-500/10', 'border-sky-500/30', 'text-sky-300', 'bg-rose-500/10', 'border-rose-500/30', 'text-rose-300');
@@ -544,7 +552,7 @@
             throw new Error("Aucun METAR live retourné pour cette zone");
           }
 
-          showBanner("Données MTO temps réel récupérées via Netlify Edge → AviationWeather.gov", "info");
+          setLiveStatus(true, "DONNÉES LIVE");
 
           return stationsInCorridor
             .filter(st => st.icao === depIcao || st.icao === arrIcao || metarMap[st.icao])
@@ -582,10 +590,10 @@
               };
             });
         } catch (err) {
-          showBanner(`Mode simulation activé (${err.message}). Vérifiez que la fonction Netlify est déployée.`, "warn");
+          setLiveStatus(false, "MODE SIMULATION");
         }
       } else {
-        showBanner("Mode simulation MTO actif.", "info");
+        setLiveStatus(false, "MODE SIMULATION");
       }
 
       return stationsInCorridor
@@ -711,7 +719,7 @@
       const depIcao = rawDep;
       const wptRaw = document.getElementById('wptInput').value.trim().toUpperCase();
       const cruiseFl = parseInt(document.getElementById('flInput').value, 10);
-      currentCorridorNm = parseInt(document.getElementById('corridorSlider').value, 10);
+      currentCorridorNm = parseInt(document.getElementById('corridorSelect').value, 10);
 
       const [depApt, arrApt] = await Promise.all([resolveAirport(depIcao), resolveAirport(arrIcao)]);
 
@@ -769,8 +777,8 @@
         const dir = w[1] === "VRB" ? "VRB" : `${w[1]}°`;
         const spd = parseInt(w[2], 10);
         const unit = w[4] === "MPS" ? "m/s" : "kt";
-        const gust = w[3] ? ` G${parseInt(w[3], 10)}` : "";
-        vent = `${dir} à ${spd}${gust} ${unit}`;
+        const gust = w[3] ? `G${parseInt(w[3], 10)}` : "";
+        vent = `${dir} à ${spd}${gust}${unit}`;
       }
 
       let visibilite = "--";
@@ -807,73 +815,76 @@
       document.getElementById('mtoCountBadge').textContent = `${corridorMto.length} stations`;
 
       const badgeColors = {
-        emerald: "bg-emerald-500/20 text-emerald-300 border-emerald-500/40",
-        sky: "bg-sky-500/20 text-sky-300 border-sky-500/40",
-        rose: "bg-rose-500/20 text-rose-300 border-rose-500/40",
-        fuchsia: "bg-fuchsia-500/20 text-fuchsia-300 border-fuchsia-500/40"
+        emerald: "bg-[#062e22] text-[#34d399] border-[#065f46]",
+        sky: "bg-[#0c2d48] text-[#38bdf8] border-[#0369a1]",
+        rose: "bg-[#3b0d1b] text-[#fb7185] border-[#9f1239]",
+        fuchsia: "bg-[#3b073a] text-[#e879f9] border-[#86198f]"
       };
 
       container.innerHTML = corridorMto.map(st => {
         const m = summarizeMtoMetrics(st.metar, st.taf);
         const modeBadge = st.isLive
-          ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/35'
-          : 'bg-amber-500/15 text-amber-300 border-amber-500/35';
+          ? 'bg-[#062e22] text-[#34d399]'
+          : 'bg-[#2b1f07] text-[#facc15]';
         const modeText = st.isLive ? 'LIVE' : 'SIMULATION';
+        const distText = st.distNm < 1 ? '0 NM de l\'axe' : `${st.distNm.toFixed(0)} NM de l\'axe`;
 
         return `
-          <div class="bg-[#0b101b] border border-slate-800/90 rounded-2xl p-4 hover:border-slate-700 transition space-y-3">
-            <div class="flex items-start justify-between gap-2">
+          <div class="bg-[#080d18] border border-[#162033] rounded-2xl p-5 space-y-4">
+            <div class="flex items-start justify-between gap-3">
               <div>
-                <div class="flex flex-wrap items-center gap-2">
-                  <span class="font-mono-aero font-bold text-lg text-white tracking-tight">${st.icao}</span>
-                  <span class="font-mono-aero text-xs px-2.5 py-0.5 rounded-lg bg-sky-500/10 text-sky-300 border border-sky-500/25">
-                    ${st.distNm < 1 ? '0 NM de l\'axe' : st.distNm.toFixed(0) + ' NM de l\'axe'}
+                <div class="flex flex-wrap items-center gap-2.5">
+                  <span class="font-mono-aero font-bold text-xl text-white tracking-tight">${st.icao}</span>
+                  <span class="font-mono-aero text-xs px-3 py-1 rounded-lg bg-[#0d192b] text-[#38bdf8] border border-[#172c49]">
+                    ${distText}
                   </span>
-                  <span class="font-mono-aero text-[11px] font-semibold uppercase px-2.5 py-0.5 rounded-lg border ${modeBadge}">
+                  <span class="font-mono-aero text-xs font-semibold uppercase px-3 py-1 rounded-lg ${modeBadge}">
                     ${modeText}
                   </span>
                 </div>
-                <div class="text-xs text-slate-400 mt-1">${st.name}</div>
+                <div class="text-sm text-slate-400 mt-1">${st.name}</div>
               </div>
-              <span class="font-mono-aero text-sm font-bold px-3 py-1 rounded-xl border ${badgeColors[st.flightCat.color]}">
+              <span class="font-mono-aero text-sm font-bold px-3.5 py-1.5 rounded-xl border ${badgeColors[st.flightCat.color]}">
                 ${st.flightCat.cat}
               </span>
             </div>
 
-            <div class="bg-[#070b14] border border-slate-800/80 rounded-xl px-3.5 py-2.5 grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+            <div class="bg-[#060a13] border border-[#131d2e] rounded-xl px-4 py-3 grid grid-cols-2 sm:grid-cols-4 gap-3">
               <div>
-                <div class="text-[11px] text-slate-400">Vent</div>
-                <div class="font-mono-aero text-xs sm:text-sm text-slate-100 mt-0.5">${m.vent}</div>
+                <div class="text-xs text-slate-400">Vent</div>
+                <div class="font-mono-aero text-sm text-slate-100 mt-1">${m.vent}</div>
               </div>
               <div>
-                <div class="text-[11px] text-slate-400">Visibilité</div>
-                <div class="font-mono-aero text-xs sm:text-sm text-slate-100 mt-0.5">${m.visibilite}</div>
+                <div class="text-xs text-slate-400">Visibilité</div>
+                <div class="font-mono-aero text-sm text-slate-100 mt-1">${m.visibilite}</div>
               </div>
               <div>
-                <div class="text-[11px] text-slate-400">Plafond</div>
-                <div class="font-mono-aero text-xs sm:text-sm text-slate-100 mt-0.5">${m.plafond}</div>
+                <div class="text-xs text-slate-400">Plafond</div>
+                <div class="font-mono-aero text-sm text-slate-100 mt-1">${m.plafond}</div>
               </div>
               <div>
-                <div class="text-[11px] text-slate-400">QNH</div>
-                <div class="font-mono-aero text-xs sm:text-sm text-slate-100 mt-0.5">${m.qnh}</div>
+                <div class="text-xs text-slate-400">QNH</div>
+                <div class="font-mono-aero text-sm text-slate-100 mt-1">${m.qnh}</div>
               </div>
             </div>
 
-            <div class="bg-[#070b14] border border-slate-800/80 rounded-xl px-3.5 py-2.5">
-              <div class="font-mono-aero text-xs leading-relaxed text-slate-200 break-words">
-                <span class="font-bold text-emerald-400 mr-1.5">METAR</span>${st.metar}
-              </div>
-            </div>
-
-            ${st.taf ? `
-              <div class="bg-[#070b14] border border-slate-800/80 rounded-xl px-3.5 py-2.5">
-                <div class="font-mono-aero text-xs leading-relaxed text-slate-200 break-words">
-                  <span class="font-bold text-sky-400 mr-1.5">TAF</span>${st.taf}
+            ${st.metar ? `
+              <div class="bg-[#060a13] border border-[#131d2e] rounded-xl px-4 py-3">
+                <div class="font-mono-aero text-xs sm:text-[13px] leading-relaxed text-slate-200 break-words">
+                  <span class="font-bold text-[#10b981] mr-1.5">METAR</span>${st.metar}
                 </div>
               </div>
             ` : ''}
 
-            ${st.note ? `<div class="text-[11px] text-slate-400 italic">${st.note}</div>` : ''}
+            ${st.taf ? `
+              <div class="bg-[#060a13] border border-[#131d2e] rounded-xl px-4 py-3">
+                <div class="font-mono-aero text-xs sm:text-[13px] leading-relaxed text-slate-200 break-words">
+                  <span class="font-bold text-[#38bdf8] mr-1.5">TAF</span>${st.taf}
+                </div>
+              </div>
+            ` : ''}
+
+            ${st.note ? `<div class="text-xs text-slate-400 italic">${st.note}</div>` : ''}
           </div>
         `;
       }).join('');
@@ -948,85 +959,135 @@ E) ${n.itemE})</pre>
       }).join('');
     }
 
-    function drawRouteCanvas() {
-      const canvas = document.getElementById('routeCanvas');
-      const ctx = canvas.getContext('2d');
-      const w = canvas.width;
-      const h = canvas.height;
-      ctx.clearRect(0, 0, w, h);
+    let leafletMap = null;
+    let routeLayerGroup = null;
 
-      ctx.strokeStyle = '#0f172a';
-      ctx.lineWidth = 1;
-      for (let x = 0; x < w; x += 30) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke(); }
-      for (let y = 0; y < h; y += 30) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke(); }
+    function initLeafletMap() {
+      if (leafletMap || !window.L) return;
+      leafletMap = L.map('routeMap', { zoomControl: true, attributionControl: true }).setView([48.68, 2.38], 9);
+
+      // Fond relief & villes détaillées (Esri World Topo Map + Carto Voyager labels)
+      const esriTopo = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', {
+        maxZoom: 18,
+        attribution: '© Esri, USGS, NOAA'
+      });
+
+      const cartoVoyager = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+        maxZoom: 19,
+        attribution: '© OpenStreetMap, © CARTO'
+      });
+
+      const openTopo = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+        maxZoom: 16,
+        attribution: '© OpenTopoMap'
+      });
+
+      esriTopo.addTo(leafletMap);
+
+      L.control.layers(
+        {
+          "Relief & Villes (Esri Topo)": esriTopo,
+          "Carte Claire & Villes (Carto)": cartoVoyager,
+          "Courbes de Niveau (OpenTopo)": openTopo
+        },
+        null,
+        { position: 'topright', collapsed: true }
+      ).addTo(leafletMap);
+
+      routeLayerGroup = L.layerGroup().addTo(leafletMap);
+    }
+
+    function drawRouteCanvas() {
+      initLeafletMap();
+      if (!leafletMap || !routeLayerGroup) return;
+      routeLayerGroup.clearLayers();
 
       if (currentRoutePoints.length < 2) return;
 
-      const allLats = [...currentRoutePoints.map(p => p.lat), ...corridorMto.map(s => s.lat)];
-      const allLons = [...currentRoutePoints.map(p => p.lon), ...corridorMto.map(s => s.lon)];
-      const minLat = Math.min(...allLats) - 0.22;
-      const maxLat = Math.max(...allLats) + 0.22;
-      const minLon = Math.min(...allLons) - 0.35;
-      const maxLon = Math.max(...allLons) + 0.35;
+      const latLngs = currentRoutePoints.map(p => [p.lat, p.lon]);
+      const corridorMeters = currentCorridorNm * 1852;
 
-      const project = (lat, lon) => ({
-        x: 40 + ((lon - minLon) / (maxLon - minLon || 1)) * (w - 80),
-        y: (h - 35) - ((lat - minLat) / (maxLat - minLat || 1)) * (h - 70)
+      // Couloir latéral autour de chaque segment et point
+      latLngs.forEach(ll => {
+        L.circle(ll, {
+          radius: corridorMeters,
+          color: '#38bdf8',
+          weight: 1,
+          opacity: 0.35,
+          fillColor: '#38bdf8',
+          fillOpacity: 0.10,
+          interactive: false
+        }).addTo(routeLayerGroup);
       });
 
-      const projectedRoute = currentRoutePoints.map(p => ({ ...p, ...project(p.lat, p.lon) }));
+      L.polyline(latLngs, {
+        color: '#38bdf8',
+        weight: 18,
+        opacity: 0.14,
+        lineCap: 'round',
+        lineJoin: 'round',
+        interactive: false
+      }).addTo(routeLayerGroup);
 
-      ctx.save();
-      ctx.lineCap = 'round';
-      ctx.lineJoin = 'round';
-      ctx.strokeStyle = 'rgba(14, 165, 233, 0.14)';
-      ctx.lineWidth = Math.min(90, Math.max(24, currentCorridorNm * 0.9));
-      ctx.beginPath();
-      projectedRoute.forEach((pt, idx) => idx === 0 ? ctx.moveTo(pt.x, pt.y) : ctx.lineTo(pt.x, pt.y));
-      ctx.stroke();
-      ctx.restore();
+      // Axe de route
+      L.polyline(latLngs, {
+        color: '#0284c7',
+        weight: 3.5,
+        opacity: 0.95,
+        dashArray: '8, 6'
+      }).addTo(routeLayerGroup);
 
-      ctx.strokeStyle = '#38bdf8';
-      ctx.lineWidth = 2.5;
-      ctx.setLineDash([6, 4]);
-      ctx.beginPath();
-      projectedRoute.forEach((pt, idx) => idx === 0 ? ctx.moveTo(pt.x, pt.y) : ctx.lineTo(pt.x, pt.y));
-      ctx.stroke();
-      ctx.setLineDash([]);
-
-      const mtoColorMap = { emerald: '#34d399', sky: '#38bdf8', rose: '#f43f5e', fuchsia: '#e879f9' };
+      // Stations MTO
+      const mtoColorMap = { emerald: '#10b981', sky: '#0ea5e9', rose: '#f43f5e', fuchsia: '#d946ef' };
       corridorMto.forEach(st => {
-        const pt = project(st.lat, st.lon);
-        ctx.fillStyle = mtoColorMap[st.flightCat.color] || '#34d399';
-        ctx.beginPath();
-        ctx.arc(pt.x, pt.y, 4.5, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.font = '600 10px "JetBrains Mono", monospace';
-        ctx.fillStyle = '#cbd5e1';
-        ctx.fillText(st.icao, pt.x + 7, pt.y + 3);
+        const col = mtoColorMap[st.flightCat.color] || '#10b981';
+        L.circleMarker([st.lat, st.lon], {
+          radius: 7,
+          fillColor: col,
+          color: '#0f172a',
+          weight: 2,
+          fillOpacity: 0.95
+        })
+          .bindTooltip(`${st.icao} • ${st.flightCat.cat}`, { permanent: true, direction: 'right', offset: [8, 0] })
+          .addTo(routeLayerGroup);
       });
 
+      // NOTAM critiques (losange rouge)
       analyzedNotams.filter(n => n.isImportant).forEach(n => {
-        const pt = project(n.lat, n.lon);
-        ctx.save();
-        ctx.translate(pt.x, pt.y);
-        ctx.rotate(Math.PI / 4);
-        ctx.fillStyle = '#fbbf24';
-        ctx.fillRect(-4, -4, 8, 8);
-        ctx.restore();
+        const diamondIcon = L.divIcon({
+          className: '',
+          html: '<div style="width:12px;height:12px;background:#f43f5e;border:2px solid #ffffff;transform:rotate(45deg);box-shadow:0 0 6px rgba(0,0,0,0.6);"></div>',
+          iconSize: [12, 12],
+          iconAnchor: [6, 6]
+        });
+        L.marker([n.lat, n.lon], { icon: diamondIcon })
+          .bindTooltip(`${n.id} (${n.qCode})`, { direction: 'top', offset: [0, -6] })
+          .addTo(routeLayerGroup);
       });
 
-      projectedRoute.forEach((pt, idx) => {
-        const isEnd = idx === 0 || idx === projectedRoute.length - 1;
-        ctx.fillStyle = isEnd ? '#f8fafc' : '#38bdf8';
-        ctx.beginPath();
-        ctx.arc(pt.x, pt.y, isEnd ? 5 : 3.5, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.font = '700 11px "JetBrains Mono", monospace';
-        ctx.fillStyle = '#ffffff';
-        ctx.fillText(pt.code, pt.x - 14, pt.y - 10);
+      // Points départ / waypoints / arrivée
+      currentRoutePoints.forEach((pt, idx) => {
+        const isEnd = idx === 0 || idx === currentRoutePoints.length - 1;
+        L.circleMarker([pt.lat, pt.lon], {
+          radius: isEnd ? 8 : 5.5,
+          fillColor: isEnd ? '#ffffff' : '#38bdf8',
+          color: '#0f172a',
+          weight: 2.5,
+          fillOpacity: 1
+        })
+          .bindTooltip(pt.code, { permanent: true, direction: 'top', offset: [0, -8] })
+          .addTo(routeLayerGroup);
       });
+
+      const bounds = L.latLngBounds(latLngs);
+      corridorMto.forEach(st => bounds.extend([st.lat, st.lon]));
+      leafletMap.fitBounds(bounds.pad(0.28));
+      setTimeout(() => leafletMap.invalidateSize(), 60);
     }
+
+    window.addEventListener('resize', () => {
+      if (leafletMap) leafletMap.invalidateSize();
+    });
 
     runBriefing();
   </script>
