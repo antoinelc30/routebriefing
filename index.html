@@ -360,31 +360,80 @@
       return minDist;
     }
 
-    // Appel direct à la Netlify Function /.netlify/functions/weather
+    const WEATHER_CACHE = new Map();
+    const CACHE_TTL_MS = 120000;
+    let netlifyFunctionAvailable = null;
+
+    function fetchWithTimeout(url, timeoutMs = 2500) {
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+      return fetch(url, { signal: ctrl.signal }).finally(() => clearTimeout(timer));
+    }
+
+    // Appel rapide avec cache TTL (2 min) et mémorisation de disponibilité de la Netlify Function
     async function callNetlifyWeather(params) {
       const qs = new URLSearchParams(params).toString();
-      const res = await fetch(`/.netlify/functions/weather?${qs}`);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      return await res.json();
+      const cacheKey = qs;
+      const cached = WEATHER_CACHE.get(cacheKey);
+      if (cached && (Date.now() - cached.ts) < CACHE_TTL_MS) {
+        return cached.data;
+      }
+
+      const ids = encodeURIComponent(params.ids || "");
+      let directUrl = null;
+      if (params.type === "metar") directUrl = `https://aviationweather.gov/api/data/metar?ids=${ids}&format=json`;
+      else if (params.type === "taf") directUrl = `https://aviationweather.gov/api/data/taf?ids=${ids}&format=json`;
+      else if (params.type === "station") directUrl = `https://aviationweather.gov/api/data/airport?ids=${ids}&format=json`;
+
+      if (netlifyFunctionAvailable !== false) {
+        try {
+          const res = await fetchWithTimeout(`/.netlify/functions/weather?${qs}`, 2200);
+          if (res.ok) {
+            const json = await res.json();
+            const valid = (Array.isArray(json) && json.length > 0) || (json && !Array.isArray(json) && Object.keys(json).length > 0);
+            if (valid) {
+              netlifyFunctionAvailable = true;
+              WEATHER_CACHE.set(cacheKey, { ts: Date.now(), data: json });
+              return json;
+            }
+          }
+          if (res.status === 404 || res.status === 502 || res.status === 503) {
+            netlifyFunctionAvailable = false;
+          }
+        } catch (_) {
+          if (netlifyFunctionAvailable === null) netlifyFunctionAvailable = false;
+        }
+      }
+
+      if (!directUrl) throw new Error("Endpoint météo indisponible");
+      const directRes = await fetchWithTimeout(directUrl, 4000);
+      if (!directRes.ok) throw new Error(`HTTP ${directRes.status}`);
+      const directJson = await directRes.json();
+      WEATHER_CACHE.set(cacheKey, { ts: Date.now(), data: directJson });
+      return directJson;
     }
 
     async function resolveAirport(icao) {
       if (AIRPORTS[icao]) return AIRPORTS[icao];
       try {
         const data = await callNetlifyWeather({ type: "station", ids: icao });
-        if (Array.isArray(data) && data.length > 0 && data[0].lat != null) {
+        if (Array.isArray(data) && data.length > 0) {
           const st = data[0];
-          AIRPORTS[icao] = {
-            name: st.site || icao,
-            lat: parseFloat(st.lat),
-            lon: parseFloat(st.lon),
-            fir: icao.startsWith("LF") ? "LFFF" : "ZZZZ",
-            hasTaf: true
-          };
-          return AIRPORTS[icao];
+          const lat = st.lat ?? st.latitude;
+          const lon = st.lon ?? st.longitude;
+          if (lat != null && lon != null) {
+            AIRPORTS[icao] = {
+              name: st.site || st.name || icao,
+              lat: parseFloat(lat),
+              lon: parseFloat(lon),
+              fir: icao.startsWith("LF") ? "LFFF" : "ZZZZ",
+              hasTaf: true
+            };
+            return AIRPORTS[icao];
+          }
         }
       } catch (e) {
-        console.warn("Lookup Netlify stationinfo indisponible:", e);
+        console.warn("Lookup station indisponible:", e);
       }
       return null;
     }
@@ -590,6 +639,7 @@
               };
             });
         } catch (err) {
+          console.warn("Fetch MTO live échoué, bascule simulation:", err);
           setLiveStatus(false, "MODE SIMULATION");
         }
       } else {
@@ -759,9 +809,12 @@
       document.getElementById('statImportantNotams').textContent = impCount;
       document.getElementById('statFilteredNotams').textContent = analyzedNotams.length - impCount;
 
+      // Rendu immédiat de la carte et des NOTAM sans attendre le réseau MTO
+      renderNotams();
+      drawRouteCanvas();
+
       corridorMto = await fetchCorridorWeather(routePoints, currentCorridorNm);
       renderMto();
-      renderNotams();
       drawRouteCanvas();
 
       btn.disabled = false;
