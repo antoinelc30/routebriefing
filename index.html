@@ -350,26 +350,16 @@
       mtoMode = mode;
       const btnLive = document.getElementById('btnSourceLive');
       const btnSim = document.getElementById('btnSourceSim');
-      if (mode === 'live') {
-        btnLive.className = "text-xs font-medium px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 transition";
-        btnSim.className = "text-xs font-medium px-2 py-0.5 rounded text-slate-400 hover:text-white transition";
-      } else {
-        btnSim.className = "text-xs font-medium px-2 py-0.5 rounded bg-sky-500/20 text-sky-300 border border-sky-500/40 transition";
-        btnLive.className = "text-xs font-medium px-2 py-0.5 rounded text-slate-400 hover:text-white transition";
+      if (btnLive && btnSim) {
+        if (mode === 'live') {
+          btnLive.className = "text-xs font-medium px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 transition";
+          btnSim.className = "text-xs font-medium px-2 py-0.5 rounded text-slate-400 hover:text-white transition";
+        } else {
+          btnSim.className = "text-xs font-medium px-2 py-0.5 rounded bg-sky-500/20 text-sky-300 border border-sky-500/40 transition";
+          btnLive.className = "text-xs font-medium px-2 py-0.5 rounded text-slate-400 hover:text-white transition";
+        }
       }
-      ['depInput', 'wptInput', 'arrInput'].forEach(id => {
-      const el = document.getElementById(id);
-      if (el) {
-        el.addEventListener('keydown', e => {
-          if (e.key === 'Enter') {
-            e.preventDefault();
-            runBriefing();
-          }
-        });
-      }
-    });
-
-    runBriefing();
+      runBriefing();
     }
 
     function loadPreset(dep, wpts, arr, fl, corridor) {
@@ -866,61 +856,63 @@
       const cruiseFl = parseInt(document.getElementById('flInput').value, 10);
       currentCorridorNm = parseInt(document.getElementById('corridorSelect').value, 10);
 
-      const [depApt, arrApt] = await Promise.all([resolveAirport(depIcao), resolveAirport(arrIcao)]);
+      try {
+        const [depApt, arrApt] = await Promise.all([resolveAirport(depIcao), resolveAirport(arrIcao)]);
 
-      if (!depApt || !arrApt) {
-        showBanner(`Code OACI inconnu : ${!depApt ? depIcao : arrIcao}.`, "error");
+        if (!depApt || !arrApt) {
+          showBanner(`Code OACI inconnu : ${!depApt ? depIcao : arrIcao}.`, "error");
+          return;
+        }
+
+        const autoWaypoints = computeAutoWaypoints(depIcao, depApt, arrIcao, arrApt);
+        let effectiveWptStr = wptRaw;
+        if (!wptRaw || wptRaw === "AUTO") {
+          effectiveWptStr = autoWaypoints.map(w => w.code).join(" ");
+          document.getElementById('wptInput').value = effectiveWptStr || "DCT";
+        }
+
+        const routePoints = [{ code: depIcao, name: depApt.name, lat: depApt.lat, lon: depApt.lon }];
+        if (effectiveWptStr && effectiveWptStr !== "DCT") {
+          effectiveWptStr.split(/[\s,]+/).forEach(w => {
+            if (WAYPOINTS[w]) routePoints.push({ code: w, name: w, lat: WAYPOINTS[w].lat, lon: WAYPOINTS[w].lon });
+            else if (AIRPORTS[w]) routePoints.push({ code: w, name: AIRPORTS[w].name, lat: AIRPORTS[w].lat, lon: AIRPORTS[w].lon });
+          });
+        }
+        routePoints.push({ code: arrIcao, name: arrApt.name, lat: arrApt.lat, lon: arrApt.lon });
+        currentRoutePoints = routePoints;
+
+        let totalDist = 0;
+        for (let i = 0; i < routePoints.length - 1; i++) {
+          totalDist += haversineNm(routePoints[i].lat, routePoints[i].lon, routePoints[i + 1].lat, routePoints[i + 1].lon);
+        }
+
+        const altLabel = cruiseFl < 70 ? `${cruiseFl * 100} ft` : `FL${cruiseFl}`;
+        document.getElementById('distanceTag').textContent = `${totalDist.toFixed(0)} NM • Marge ±${currentCorridorNm} NM`;
+        document.getElementById('routeSummaryBadge').textContent = `${depIcao} (${depApt.name}) → ${arrIcao} (${arrApt.name}) • ${altLabel}`;
+
+        const rawNotams = buildDynamicNotams(depIcao, arrIcao, depApt, arrApt, cruiseFl);
+        analyzedNotams = rawNotams
+          .map(n => evaluateNotam(n, routePoints, currentCorridorNm, cruiseFl))
+          .sort((a, b) => b.score - a.score);
+
+        const impCount = analyzedNotams.filter(n => n.isImportant).length;
+        document.getElementById('statTotalNotams').textContent = analyzedNotams.length;
+        document.getElementById('statImportantNotams').textContent = impCount;
+        document.getElementById('statFilteredNotams').textContent = analyzedNotams.length - impCount;
+
+        renderNotams();
+        drawRouteCanvas();
+
+        corridorMto = await fetchCorridorWeather(routePoints, currentCorridorNm);
+        renderMto();
+        drawRouteCanvas();
+      } catch (err) {
+        console.error("Erreur runBriefing:", err);
+        showBanner("Erreur lors de la génération du briefing.", "error");
+      } finally {
         btn.disabled = false;
         btn.classList.remove('opacity-60');
-        return;
       }
-
-      const autoWaypoints = computeAutoWaypoints(depIcao, depApt, arrIcao, arrApt);
-      let effectiveWptStr = wptRaw;
-      if (!wptRaw || wptRaw === "AUTO") {
-        effectiveWptStr = autoWaypoints.map(w => w.code).join(" ");
-        document.getElementById('wptInput').value = effectiveWptStr || "DCT";
-      }
-
-      const routePoints = [{ code: depIcao, name: depApt.name, lat: depApt.lat, lon: depApt.lon }];
-      if (effectiveWptStr && effectiveWptStr !== "DCT") {
-        effectiveWptStr.split(/[\s,]+/).forEach(w => {
-          if (WAYPOINTS[w]) routePoints.push({ code: w, name: w, lat: WAYPOINTS[w].lat, lon: WAYPOINTS[w].lon });
-          else if (AIRPORTS[w]) routePoints.push({ code: w, name: AIRPORTS[w].name, lat: AIRPORTS[w].lat, lon: AIRPORTS[w].lon });
-        });
-      }
-      routePoints.push({ code: arrIcao, name: arrApt.name, lat: arrApt.lat, lon: arrApt.lon });
-      currentRoutePoints = routePoints;
-
-      let totalDist = 0;
-      for (let i = 0; i < routePoints.length - 1; i++) {
-        totalDist += haversineNm(routePoints[i].lat, routePoints[i].lon, routePoints[i + 1].lat, routePoints[i + 1].lon);
-      }
-
-      const altLabel = cruiseFl < 70 ? `${cruiseFl * 100} ft` : `FL${cruiseFl}`;
-      document.getElementById('distanceTag').textContent = `${totalDist.toFixed(0)} NM • Marge ±${currentCorridorNm} NM`;
-      document.getElementById('routeSummaryBadge').textContent = `${depIcao} (${depApt.name}) → ${arrIcao} (${arrApt.name}) • ${altLabel}`;
-
-      const rawNotams = buildDynamicNotams(depIcao, arrIcao, depApt, arrApt, cruiseFl);
-      analyzedNotams = rawNotams
-        .map(n => evaluateNotam(n, routePoints, currentCorridorNm, cruiseFl))
-        .sort((a, b) => b.score - a.score);
-
-      const impCount = analyzedNotams.filter(n => n.isImportant).length;
-      document.getElementById('statTotalNotams').textContent = analyzedNotams.length;
-      document.getElementById('statImportantNotams').textContent = impCount;
-      document.getElementById('statFilteredNotams').textContent = analyzedNotams.length - impCount;
-
-      // Rendu immédiat de la carte et des NOTAM sans attendre le réseau MTO
-      renderNotams();
-      drawRouteCanvas();
-
-      corridorMto = await fetchCorridorWeather(routePoints, currentCorridorNm);
-      renderMto();
-      drawRouteCanvas();
-
-      btn.disabled = false;
-      btn.classList.remove('opacity-60');
     }
 
     function summarizeMtoMetrics(metarRaw, tafRaw) {
