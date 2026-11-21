@@ -4,242 +4,359 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>RouteBriefing — NOTAM & MTO Aero</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
+    :root {
+      --bg: #090d16;
+      --panel: #0f172a;
+      --panel-2: #060a12;
+      --border: #1e293b;
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+      --sky: #38bdf8;
+      --emerald: #34d399;
+      --rose: #f43f5e;
+      --rose-bg: rgba(244, 63, 94, 0.14);
+      --rose-border: rgba(244, 63, 94, 0.55);
+    }
+    * { box-sizing: border-box; }
     body {
-      font-family: 'Inter', sans-serif;
-      background-color: #090d16;
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+    header {
+      background: rgba(15, 23, 42, 0.95);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 16px;
+      position: sticky;
+      top: 0;
+      z-index: 20;
+    }
+    .wrap { max-width: 1280px; margin: 0 auto; width: 100%; }
+    .row-between { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
+    .brand { display: flex; align-items: center; gap: 10px; }
+    .badge-live {
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 6px;
+      background: var(--rose-bg);
+      color: #fda4af;
+      border: 1px solid var(--rose-border);
+    }
+    .pill {
+      font-size: 12px;
+      padding: 6px 10px;
+      border-radius: 8px;
+      background: var(--panel-2);
+      border: 1px solid var(--border);
+      color: var(--sky);
+    }
+    .controls {
+      background: rgba(15, 23, 42, 0.6);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 16px;
+    }
+    .grid-form {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 10px;
+      align-items: end;
+    }
+    label {
+      display: block;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--muted);
+      margin-bottom: 4px;
+      font-weight: 600;
+    }
+    input[type="text"], select {
+      width: 100%;
+      background: var(--panel-2);
+      color: #fff;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      padding: 8px 10px;
+      font-size: 13px;
+    }
+    input[type="range"] { width: 100%; accent-color: var(--sky); cursor: pointer; }
+    button {
+      cursor: pointer;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      border: 1px solid transparent;
+      padding: 8px 14px;
+    }
+    .btn-primary { background: var(--sky); color: #06101d; }
+    .btn-primary:hover { background: #7dd3fc; }
+    .btn-preset {
+      background: #1e293b;
       color: #e2e8f0;
+      border-color: #334155;
+      padding: 4px 9px;
+      font-size: 11px;
     }
-    .font-mono-aero {
-      font-family: 'JetBrains Mono', monospace;
+    .btn-preset:hover { background: #334155; }
+    .banner {
+      margin-top: 10px;
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-size: 12px;
+      background: rgba(56, 189, 248, 0.12);
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      color: #bae6fd;
     }
-    ::-webkit-scrollbar { width: 6px; height: 6px; }
-    ::-webkit-scrollbar-track { background: #0f172a; }
-    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
-    ::-webkit-scrollbar-thumb:hover { background: #475569; }
-    input[type="range"] { accent-color: #0ea5e9; }
+    .main-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 18px;
+      padding: 18px 16px 32px;
+      flex: 1;
+    }
+    @media (min-width: 980px) {
+      .main-grid { grid-template-columns: 5fr 7fr; }
+    }
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .card-head {
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .card-body { padding: 12px; }
+    canvas { width: 100%; height: 220px; background: var(--panel-2); border-radius: 8px; display: block; }
+    .mto-box {
+      background: var(--panel-2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px;
+      margin-bottom: 10px;
+    }
+    .mto-box:last-child { margin-bottom: 0; }
+    .cat-pill {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 6px;
+      border: 1px solid;
+    }
+    .vfr { background: rgba(52, 211, 153, 0.15); color: #6ee7b7; border-color: rgba(52, 211, 153, 0.4); }
+    .mvfr { background: rgba(56, 189, 248, 0.15); color: #7dd3fc; border-color: rgba(56, 189, 248, 0.4); }
+    .ifr { background: var(--rose-bg); color: #fda4af; border-color: var(--rose-border); }
+    .decoded-block {
+      margin-top: 8px;
+      padding: 8px 10px;
+      border-radius: 8px;
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid #1e293b;
+      font-size: 12px;
+    }
+    .decoded-block ul { margin: 4px 0 0; padding-left: 18px; }
+    .decoded-block li { margin-bottom: 3px; }
+    .raw-line {
+      margin-top: 6px;
+      padding-top: 6px;
+      border-top: 1px solid #1e293b;
+      font-size: 11px;
+      color: var(--muted);
+      word-break: break-word;
+    }
+    .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 12px; }
+    .stat-card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 12px;
+    }
+    .stat-card.red { border-color: var(--rose-border); background: rgba(244, 63, 94, 0.07); }
+    .stat-val { font-size: 22px; font-weight: 700; margin-top: 2px; }
+    .notam-card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px;
+      margin-bottom: 10px;
+    }
+    .notam-card.critical {
+      border-color: var(--rose-border);
+      background: linear-gradient(180deg, rgba(244, 63, 94, 0.12) 0%, rgba(15, 23, 42, 0.96) 100%);
+    }
+    .notam-card.filtered { opacity: 0.72; }
+    .tag {
+      display: inline-block;
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 6px;
+      background: var(--panel-2);
+      border: 1px solid var(--border);
+      color: var(--muted);
+      margin-right: 6px;
+      margin-top: 6px;
+    }
+    .tabs { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+    .tab-btn { background: #1e293b; color: var(--muted); border-color: #334155; padding: 6px 10px; font-size: 12px; }
+    .tab-btn.active.red { background: var(--rose-bg); color: #fecdd3; border-color: var(--rose-border); }
+    .tab-btn.active { background: rgba(56, 189, 248, 0.18); color: #bae6fd; border-color: rgba(56, 189, 248, 0.45); }
   </style>
 </head>
-<body class="min-h-screen flex flex-col">
-
-  <!-- TOP NAVBAR -->
-  <header class="bg-slate-900/90 border-b border-slate-800 sticky top-0 z-30 backdrop-blur">
-    <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-4">
-      <div class="flex items-center gap-3">
-        <div class="w-9 h-9 rounded-lg bg-sky-500/20 border border-sky-500/40 flex items-center justify-center text-sky-400">
-          <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/>
-          </svg>
-        </div>
+<body>
+  <header>
+    <div class="wrap row-between">
+      <div class="brand">
         <div>
-          <div class="flex items-center gap-2">
-            <h1 class="font-bold text-base tracking-tight text-white">RouteBriefing</h1>
-            <span class="text-[10px] font-mono-aero uppercase px-2 py-0.5 rounded bg-rose-500/15 text-rose-300 border border-rose-500/30">BRIEFING DÉCODÉ • LIVE MTO</span>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <strong>RouteBriefing</strong>
+            <span class="badge-live mono">NOTAM CRITIQUES • MTO DÉCODÉ</span>
           </div>
-          <p class="text-xs text-slate-400">METAR/TAF décodés, distance à l'axe & NOTAM critiques en rouge</p>
+          <div style="font-size:12px;color:var(--muted);">Triage NOTAM sur route & METAR/TAF décodés avec marge latérale</div>
         </div>
       </div>
-
-      <div class="flex items-center gap-3">
-        <div class="flex items-center gap-2 bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5">
-          <span class="text-xs text-slate-400">Source MTO :</span>
-          <button id="btnSourceLive" onclick="setMtoMode('live')" class="text-xs font-medium px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 transition">Live API</button>
-          <button id="btnSourceSim" onclick="setMtoMode('sim')" class="text-xs font-medium px-2 py-0.5 rounded text-slate-400 hover:text-white transition">Simulation</button>
-        </div>
-        <div id="utcClock" class="font-mono-aero text-xs bg-slate-950 border border-slate-800 px-3 py-1.5 rounded-lg text-sky-400 font-semibold">
-          --:-- UTC
-        </div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <button id="btnMode" class="btn-preset mono" onclick="toggleMode()">Source : Direct → Netlify → Démo</button>
+        <div id="utcClock" class="pill mono">--:-- UTC</div>
       </div>
     </div>
   </header>
 
-  <!-- ROUTE BRIEFING BAR -->
-  <section class="bg-slate-900/50 border-b border-slate-800">
-    <div class="max-w-7xl mx-auto px-4 py-4">
-      <div class="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
-        <div class="md:col-span-2">
-          <label class="block text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-1">Départ (OACI / Route)</label>
-          <input id="depInput" type="text" value="LFPN" maxlength="12" placeholder="LFPN ou LFPN-LFPM"
-            class="w-full font-mono-aero uppercase bg-slate-950 border border-slate-700 focus:border-sky-500 focus:outline-none rounded-lg px-3 py-2 text-sm text-white font-bold tracking-wider" />
+  <section class="controls">
+    <div class="wrap">
+      <div class="grid-form">
+        <div>
+          <label>Départ (ou LFPN-LFPM)</label>
+          <input id="depInput" class="mono" type="text" value="LFPN" />
         </div>
-
-        <div class="md:col-span-3">
-          <label class="block text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-1">Waypoints / Route</label>
-          <input id="wptInput" type="text" value="RBT MEL" placeholder="Ex: RBT MEL ou DCT"
-            class="w-full font-mono-aero uppercase bg-slate-950 border border-slate-700 focus:border-sky-500 focus:outline-none rounded-lg px-3 py-2 text-sm text-slate-200" />
+        <div>
+          <label>Waypoints</label>
+          <input id="wptInput" class="mono" type="text" value="RBT MEL" />
         </div>
-
-        <div class="md:col-span-2">
-          <label class="block text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-1">Arrivée (OACI)</label>
-          <input id="arrInput" type="text" value="LFPM" maxlength="4" placeholder="LFPM"
-            class="w-full font-mono-aero uppercase bg-slate-950 border border-slate-700 focus:border-sky-500 focus:outline-none rounded-lg px-3 py-2 text-sm text-white font-bold tracking-wider" />
+        <div>
+          <label>Arrivée</label>
+          <input id="arrInput" class="mono" type="text" value="LFPM" />
         </div>
-
-        <div class="md:col-span-2">
-          <label class="block text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-1">Altitude / Niveau</label>
-          <select id="flInput" class="w-full font-mono-aero bg-slate-950 border border-slate-700 focus:border-sky-500 focus:outline-none rounded-lg px-3 py-2 text-sm text-white">
+        <div>
+          <label>Altitude / Niveau</label>
+          <select id="flInput" class="mono">
             <option value="15" selected>1 500 ft (VFR Bas)</option>
             <option value="25">2 500 ft (VFR)</option>
             <option value="45">4 500 ft (VFR)</option>
-            <option value="85">FL085 (IFR Bas)</option>
+            <option value="85">FL085</option>
             <option value="180">FL180</option>
             <option value="280">FL280</option>
-            <option value="350">FL350 (Croisière)</option>
+            <option value="350">FL350</option>
           </select>
         </div>
-
-        <div class="md:col-span-3 flex flex-col gap-1">
-          <div class="flex justify-between text-[11px]">
-            <span class="uppercase tracking-wider text-slate-400 font-semibold">Marge latérale</span>
-            <span id="corridorVal" class="font-mono-aero text-sky-400 font-bold">20 NM</span>
-          </div>
-          <div class="flex items-center gap-3">
-            <input id="corridorSlider" type="range" min="10" max="100" step="5" value="20" class="w-full cursor-pointer"
-              oninput="document.getElementById('corridorVal').textContent = this.value + ' NM'" />
-            <button id="btnAnalyze" onclick="runBriefing()" class="shrink-0 bg-sky-500 hover:bg-sky-400 text-slate-950 font-semibold text-sm px-4 py-2 rounded-lg transition shadow-lg shadow-sky-500/20 flex items-center gap-1.5">
-              <span>Générer</span>
-            </button>
-          </div>
+        <div>
+          <label>Marge : <span id="corridorLabel" class="mono" style="color:var(--sky)">20 NM</span></label>
+          <input id="corridorSlider" type="range" min="10" max="100" step="5" value="20"
+            oninput="document.getElementById('corridorLabel').textContent = this.value + ' NM'" />
+        </div>
+        <div>
+          <button class="btn-primary" style="width:100%" onclick="runBriefing()">Analyser la route</button>
         </div>
       </div>
 
-      <!-- Presets & Status -->
-      <div class="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs">
-        <div class="flex flex-wrap items-center gap-2">
-          <span class="text-slate-500">Routes tests :</span>
-          <button onclick="loadPreset('LFPN', 'RBT MEL', 'LFPM', '15', 20)" class="font-mono-aero px-2 py-0.5 rounded bg-sky-500/15 hover:bg-sky-500/25 text-sky-300 border border-sky-500/30">LFPN → LFPM (VFR)</button>
-          <button onclick="loadPreset('LFPN', 'CHW BNE', 'LFPZ', '25', 20)" class="font-mono-aero px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700">LFPN → LFPZ (VFR)</button>
-          <button onclick="loadPreset('LFPG', 'LATRA MOROK MTL', 'LFMN', '350', 40)" class="font-mono-aero px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700">LFPG → LFMN (IFR)</button>
-          <button onclick="loadPreset('LFPO', 'DPE SFD', 'EGLL', '280', 45)" class="font-mono-aero px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700">LFPO → EGLL (IFR)</button>
+      <div class="row-between" style="margin-top:10px;font-size:12px;">
+        <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;">
+          <span style="color:var(--muted)">Essais rapides :</span>
+          <button class="btn-preset mono" onclick="preset('LFPN','RBT MEL','LFPM','15',20)">LFPN → LFPM</button>
+          <button class="btn-preset mono" onclick="preset('LFPN','CHW BNE','LFPZ','25',20)">LFPN → LFPZ</button>
+          <button class="btn-preset mono" onclick="preset('LFPG','LATRA MOROK MTL','LFMN','350',40)">LFPG → LFMN</button>
+          <button class="btn-preset mono" onclick="preset('LFPO','DPE SFD','EGLL','280',45)">LFPO → EGLL</button>
         </div>
-        <div id="routeSummaryBadge" class="font-mono-aero text-slate-400"></div>
+        <div id="routeInfo" class="mono" style="color:var(--muted)"></div>
       </div>
-      <div id="statusBanner" class="hidden mt-2 text-xs font-mono-aero px-3 py-1.5 rounded-lg border"></div>
+      <div id="banner" class="banner mono" style="display:none;"></div>
     </div>
   </section>
 
-  <!-- MAIN CONTENT GRID -->
-  <main class="max-w-7xl mx-auto w-full px-4 py-5 grid grid-cols-1 lg:grid-cols-12 gap-5 flex-1">
-
-    <!-- LEFT COLUMN: MAP & DECODED METAR/TAF -->
-    <div class="lg:col-span-5 flex flex-col gap-5">
-      <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
-        <div class="px-4 py-2.5 border-b border-slate-800 flex items-center justify-between">
-          <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-300 flex items-center gap-2">
-            <span class="w-2 h-2 rounded-full bg-sky-400"></span>
-            Couloir & Stations MTO / NOTAM
-          </h2>
-          <span id="distanceTag" class="font-mono-aero text-xs text-slate-400">-- NM</span>
+  <main class="wrap main-grid">
+    <div>
+      <div class="card" style="margin-bottom:16px;">
+        <div class="card-head">
+          <span>Couloir de route & stations</span>
+          <span id="distBadge" class="mono" style="color:var(--muted)">-- NM</span>
         </div>
-        <div class="relative bg-[#060a12] p-2">
-          <canvas id="routeCanvas" width="520" height="260" class="w-full h-56 rounded-lg"></canvas>
-          <div class="mt-2 px-2 pb-1 flex flex-wrap items-center justify-between text-[11px] text-slate-400 gap-2">
-            <div class="flex items-center gap-3">
-              <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-emerald-400 inline-block"></span> VFR</span>
-              <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-sky-400 inline-block"></span> MVFR</span>
-              <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-rose-500 inline-block"></span> IFR/LIFR</span>
-            </div>
-            <div class="flex items-center gap-2">
-              <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rotate-45 bg-rose-500 inline-block"></span> NOTAM Rouge</span>
-            </div>
-          </div>
+        <div class="card-body">
+          <canvas id="mapCanvas" width="540" height="220"></canvas>
         </div>
       </div>
 
-      <div class="bg-slate-900 border border-slate-800 rounded-xl flex flex-col flex-1">
-        <div class="px-4 py-3 border-b border-slate-800 flex items-center justify-between">
-          <div>
-            <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-300">METAR & TAF décodés sur la route</h2>
-            <p id="mtoSourceLabel" class="text-[11px] text-slate-400">Lecture claire + code brut OACI</p>
-          </div>
-          <span id="mtoCountBadge" class="font-mono-aero text-xs px-2 py-0.5 rounded bg-slate-800 text-slate-300">0 stations</span>
+      <div class="card">
+        <div class="card-head">
+          <span>METAR & TAF décodés</span>
+          <span id="mtoCount" class="mono" style="color:var(--muted)">0 stations</span>
         </div>
-        <div id="mtoContainer" class="p-3 space-y-3 max-h-[650px] overflow-y-auto"></div>
+        <div id="mtoList" class="card-body"></div>
       </div>
     </div>
 
-    <!-- RIGHT COLUMN: INTELLIGENT NOTAM TRIAGE -->
-    <div class="lg:col-span-7 flex flex-col gap-4">
-      <div class="grid grid-cols-3 gap-3">
-        <div class="bg-slate-900 border border-slate-800 rounded-xl p-3">
-          <div class="text-[11px] text-slate-400 uppercase font-semibold">NOTAM Analysés</div>
-          <div id="statTotalNotams" class="font-mono-aero text-2xl font-bold text-white mt-0.5">0</div>
-          <div class="text-[11px] text-slate-500">Sur l'axe & couloir</div>
+    <div>
+      <div class="stats">
+        <div class="stat-card">
+          <div style="font-size:11px;color:var(--muted);text-transform:uppercase;">NOTAM analysés</div>
+          <div id="statTotal" class="stat-val mono">0</div>
         </div>
-        <div class="bg-slate-900 border border-rose-500/40 rounded-xl p-3">
-          <div class="text-[11px] text-rose-400 uppercase font-semibold">Critiques (Rouge)</div>
-          <div id="statImportantNotams" class="font-mono-aero text-2xl font-bold text-rose-400 mt-0.5">0</div>
-          <div class="text-[11px] text-slate-400">Impact direct vol / terrain</div>
+        <div class="stat-card red">
+          <div style="font-size:11px;color:#fda4af;text-transform:uppercase;">Critiques (Rouge)</div>
+          <div id="statCrit" class="stat-val mono" style="color:#fb7185;">0</div>
         </div>
-        <div class="bg-slate-900 border border-slate-800 rounded-xl p-3">
-          <div class="text-[11px] text-slate-400 uppercase font-semibold">Bruit filtré</div>
-          <div id="statFilteredNotams" class="font-mono-aero text-2xl font-bold text-slate-400 mt-0.5">0</div>
-          <div class="text-[11px] text-slate-500">Hors altitude / grues / mineurs</div>
+        <div class="stat-card">
+          <div style="font-size:11px;color:var(--muted);text-transform:uppercase;">Bruit filtré</div>
+          <div id="statFilt" class="stat-val mono" style="color:var(--muted);">0</div>
         </div>
       </div>
 
-      <div class="bg-slate-900 border border-slate-800 rounded-xl p-3 flex flex-wrap items-center justify-between gap-3">
-        <div class="flex flex-wrap items-center gap-1.5">
-          <button onclick="setNotamFilter('important')" id="tabImportant" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-rose-500/20 text-rose-300 border border-rose-500/40 transition">
-            Critiques uniquement (Rouge)
-          </button>
-          <button onclick="setNotamFilter('all')" id="tabAll" class="px-3 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-white transition">
-            Tous les NOTAM
-          </button>
-          <button onclick="setNotamFilter('filtered')" id="tabFiltered" class="px-3 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-white transition">
-            Masqués (Bruit)
-          </button>
+      <div class="tabs">
+        <div style="display:flex;flex-wrap:wrap;gap:6px;">
+          <button id="tabCrit" class="tab-btn active red" onclick="setFilter('crit')">Critiques uniquement (Rouge)</button>
+          <button id="tabAll" class="tab-btn" onclick="setFilter('all')">Tous les NOTAM</button>
+          <button id="tabFilt" class="tab-btn" onclick="setFilter('filt')">Masqués (Bruit)</button>
         </div>
-
-        <label class="flex items-center gap-2 text-xs text-slate-400 cursor-pointer select-none">
-          <input id="toggleRawOaci" type="checkbox" onchange="renderNotams()" class="rounded bg-slate-800 border-slate-600 text-sky-500" />
-          <span>Afficher code brut OACI</span>
+        <label style="margin:0;display:flex;align-items:center;gap:6px;text-transform:none;font-size:12px;color:var(--muted);cursor:pointer;">
+          <input id="chkRaw" type="checkbox" onchange="renderAll()" />
+          <span>Code brut OACI</span>
         </label>
       </div>
 
-      <div id="notamContainer" class="space-y-3"></div>
+      <div id="notamList"></div>
     </div>
   </main>
 
   <script>
     const AIRPORTS = {
-      LFPN: { name: "Toussus-le-Noble", lat: 48.7519, lon: 2.1061, fir: "LFFF", hasTaf: false },
-      LFPM: { name: "Melun-Villaroche", lat: 48.6047, lon: 2.6711, fir: "LFFF", hasTaf: false },
-      LFPZ: { name: "Saint-Cyr-l'École", lat: 48.8011, lon: 2.0672, fir: "LFFF", hasTaf: false },
-      LFPO: { name: "Paris-Orly", lat: 48.7233, lon: 2.3794, fir: "LFFF", hasTaf: true },
-      LFPG: { name: "Paris-Charles de Gaulle", lat: 49.0097, lon: 2.5479, fir: "LFFF", hasTaf: true },
-      LFPB: { name: "Paris-Le Bourget", lat: 48.9694, lon: 2.4414, fir: "LFFF", hasTaf: true },
-      LFPV: { name: "Vélizy-Villacoublay", lat: 48.7742, lon: 2.1917, fir: "LFFF", hasTaf: true },
-      LFPT: { name: "Pontoise-Cormeilles", lat: 49.0967, lon: 2.0408, fir: "LFFF", hasTaf: true },
-      LFPL: { name: "Lognes-Émerainville", lat: 48.8311, lon: 2.6225, fir: "LFFF", hasTaf: false },
-      LFPE: { name: "Meaux-Esbly", lat: 48.9261, lon: 2.8347, fir: "LFFF", hasTaf: false },
-      LFOX: { name: "Étampes-Mondésir", lat: 48.3822, lon: 2.0711, fir: "LFFF", hasTaf: false },
-      LFPU: { name: "Moret-Épisy", lat: 48.3583, lon: 2.7850, fir: "LFFF", hasTaf: false },
-      LFON: { name: "Dreux-Vernouillet", lat: 48.7042, lon: 1.3611, fir: "LFFF", hasTaf: false },
-      LFOZ: { name: "Orléans-Saint-Denis", lat: 47.8969, lon: 2.1633, fir: "LFFF", hasTaf: false },
-      LFOJ: { name: "Orléans-Bricy", lat: 47.9878, lon: 1.7606, fir: "LFFF", hasTaf: true },
-      LFOB: { name: "Beauvais-Tillé", lat: 49.4544, lon: 2.1128, fir: "LFFF", hasTaf: true },
-      LFRG: { name: "Deauville-Normandie", lat: 49.3653, lon: 0.1542, fir: "LFFF", hasTaf: true },
-      LFOH: { name: "Le Havre-Octeville", lat: 49.5339, lon: 0.0881, fir: "LFFF", hasTaf: true },
-      LFRK: { name: "Caen-Carpiquet", lat: 49.1733, lon: -0.4500, fir: "LFFF", hasTaf: true },
-      LFOP: { name: "Rouen-Vallée de Seine", lat: 49.3842, lon: 1.1747, fir: "LFFF", hasTaf: true },
-      LFQQ: { name: "Lille-Lesquin", lat: 50.5619, lon: 3.0894, fir: "LFFF", hasTaf: true },
-      LFLL: { name: "Lyon-Saint Exupéry", lat: 45.7256, lon: 5.0811, fir: "LFMM", hasTaf: true },
-      LFLY: { name: "Lyon-Bron", lat: 45.7272, lon: 4.9442, fir: "LFMM", hasTaf: true },
-      LFML: { name: "Marseille-Provence", lat: 43.4367, lon: 5.2150, fir: "LFMM", hasTaf: true },
-      LFMN: { name: "Nice-Côte d'Azur", lat: 43.6584, lon: 7.2159, fir: "LFMM", hasTaf: true },
-      LFBO: { name: "Toulouse-Blagnac", lat: 43.6291, lon: 1.3638, fir: "LFBB", hasTaf: true },
-      LFBD: { name: "Bordeaux-Mérignac", lat: 44.8283, lon: -0.7156, fir: "LFBB", hasTaf: true },
-      LFRS: { name: "Nantes-Atlantique", lat: 47.1532, lon: -1.6107, fir: "LFRR", hasTaf: true },
-      LFRN: { name: "Rennes-Saint-Jacques", lat: 48.0695, lon: -1.7348, fir: "LFRR", hasTaf: true },
-      LFSB: { name: "Bâle-Mulhouse", lat: 47.5900, lon: 7.5292, fir: "LFEE", hasTaf: true },
-      LFST: { name: "Strasbourg-Entzheim", lat: 48.5383, lon: 7.6282, fir: "LFEE", hasTaf: true },
-      EGLL: { name: "London-Heathrow", lat: 51.4700, lon: -0.4543, fir: "EGTT", hasTaf: true },
-      EGKK: { name: "London-Gatwick", lat: 51.1537, lon: -0.1821, fir: "EGTT", hasTaf: true },
-      LSGG: { name: "Genève-Cointrin", lat: 46.2381, lon: 6.1089, fir: "LSAS", hasTaf: true }
+      LFPN: { name: "Toussus-le-Noble", lat: 48.7519, lon: 2.1061, fir: "LFFF" },
+      LFPM: { name: "Melun-Villaroche", lat: 48.6047, lon: 2.6711, fir: "LFFF" },
+      LFPZ: { name: "Saint-Cyr-l'École", lat: 48.8011, lon: 2.0672, fir: "LFFF" },
+      LFPO: { name: "Paris-Orly", lat: 48.7233, lon: 2.3794, fir: "LFFF" },
+      LFPG: { name: "Paris-Charles de Gaulle", lat: 49.0097, lon: 2.5479, fir: "LFFF" },
+      LFPB: { name: "Paris-Le Bourget", lat: 48.9694, lon: 2.4414, fir: "LFFF" },
+      LFPV: { name: "Vélizy-Villacoublay", lat: 48.7742, lon: 2.1917, fir: "LFFF" },
+      LFPT: { name: "Pontoise-Cormeilles", lat: 49.0967, lon: 2.0408, fir: "LFFF" },
+      LFPL: { name: "Lognes-Émerainville", lat: 48.8311, lon: 2.6225, fir: "LFFF" },
+      LFOX: { name: "Étampes-Mondésir", lat: 48.3822, lon: 2.0711, fir: "LFFF" },
+      LFOB: { name: "Beauvais-Tillé", lat: 49.4544, lon: 2.1128, fir: "LFFF" },
+      LFMN: { name: "Nice-Côte d'Azur", lat: 43.6584, lon: 7.2159, fir: "LFMM" },
+      LFLL: { name: "Lyon-Saint Exupéry", lat: 45.7256, lon: 5.0811, fir: "LFMM" },
+      EGLL: { name: "London-Heathrow", lat: 51.4700, lon: -0.4543, fir: "EGTT" },
+      LSGG: { name: "Genève-Cointrin", lat: 46.2381, lon: 6.1089, fir: "LSAS" }
     };
 
     const WAYPOINTS = {
@@ -247,9 +364,6 @@
       MEL: { lat: 48.4556, lon: 2.8133 },
       CHW: { lat: 48.4719, lon: 1.5469 },
       BNE: { lat: 48.9833, lon: 1.9500 },
-      PON: { lat: 49.0967, lon: 2.0408 },
-      CLM: { lat: 48.8444, lon: 3.0139 },
-      PTV: { lat: 48.1650, lon: 2.2644 },
       LATRA: { lat: 48.4210, lon: 3.0120 },
       MOROK: { lat: 47.4500, lon: 4.1200 },
       MTL: { lat: 44.5500, lon: 4.7300 },
@@ -257,156 +371,135 @@
       SFD: { lat: 50.7600, lon: 0.1210 }
     };
 
-    const Q_CODE_RULES = {
-      QMRLC: { category: "PISTE", label: "Piste fermée", critical: true, baseScore: 95 },
-      QMRXX: { category: "PISTE", label: "Restriction piste", critical: true, baseScore: 86 },
-      QFAXX: { category: "AÉRODROME / CTR", label: "Restriction trafic / TWR", critical: true, baseScore: 85 },
-      QRTCA: { category: "ESPACE AÉRIEN / ZRT", label: "Zone réglementée active", critical: true, baseScore: 90 },
-      QWELW: { category: "ACTIVITÉ VOL", label: "Voltige / para / drone", critical: true, baseScore: 84 },
-      QICAS: { category: "APPROCHE / ILS", label: "Aide approche hors service", critical: true, baseScore: 82 },
-      QNVAS: { category: "NAVIGATION / ATS", label: "VOR / route ATS modifiée", critical: false, baseScore: 68 },
-      QOBCE: { category: "OBSTACLE", label: "Grue / obstacle ponctuel", critical: false, baseScore: 22 },
-      QLPAS: { category: "BALISAGE", label: "Feux / balisage partiel", critical: false, baseScore: 45 },
-      QMXLC: { category: "SOL / TAXIWAY", label: "Taxiway fermé", critical: false, baseScore: 38 }
+    const Q_RULES = {
+      QMRLC: { cat: "PISTE", label: "Piste fermée", score: 95, crit: true },
+      QFAXX: { cat: "AÉRODROME / CTR", label: "Restriction trafic / TWR", score: 86, crit: true },
+      QRTCA: { cat: "ESPACE AÉRIEN / ZRT", label: "Zone réglementée active", score: 90, crit: true },
+      QWELW: { cat: "ACTIVITÉ VOL", label: "Voltige / parachutage / drone", score: 84, crit: true },
+      QICAS: { cat: "APPROCHE / ILS", label: "Aide approche hors service", score: 82, crit: true },
+      QNVAS: { cat: "NAVIGATION / ATS", label: "Route ATS / espace supérieur", score: 66, crit: false },
+      QOBCE: { cat: "OBSTACLE", label: "Grue / obstacle ponctuel", score: 22, crit: false },
+      QMXLC: { cat: "SOL / TAXIWAY", label: "Taxiway fermé", score: 35, crit: false }
     };
 
-    let mtoMode = 'live';
-    let currentFilter = 'important';
-    let analyzedNotams = [];
-    let corridorMto = [];
-    let currentRoutePoints = [];
-    let currentCorridorNm = 20;
+    let autoLive = true;
+    let activeFilter = "crit";
+    let notamResults = [];
+    let mtoResults = [];
+    let routePts = [];
+    let corridorNm = 20;
 
-    function updateClock() {
-      const now = new Date();
-      document.getElementById('utcClock').textContent =
-        `${String(now.getUTCHours()).padStart(2, '0')}:${String(now.getUTCMinutes()).padStart(2, '0')} UTC`;
-    }
-    setInterval(updateClock, 1000);
-    updateClock();
+    setInterval(() => {
+      const d = new Date();
+      document.getElementById("utcClock").textContent =
+        String(d.getUTCHours()).padStart(2, "0") + ":" + String(d.getUTCMinutes()).padStart(2, "0") + " UTC";
+    }, 1000);
 
-    function showBanner(msg, type = 'info') {
-      const el = document.getElementById('statusBanner');
-      if (!msg) { el.classList.add('hidden'); return; }
-      el.classList.remove('hidden', 'bg-amber-500/10', 'border-amber-500/30', 'text-amber-300', 'bg-sky-500/10', 'border-sky-500/30', 'text-sky-300', 'bg-rose-500/10', 'border-rose-500/30', 'text-rose-300');
-      if (type === 'warn') el.classList.add('bg-amber-500/10', 'border-amber-500/30', 'text-amber-300');
-      else if (type === 'error') el.classList.add('bg-rose-500/10', 'border-rose-500/30', 'text-rose-300');
-      else el.classList.add('bg-sky-500/10', 'border-sky-500/30', 'text-sky-300');
-      el.textContent = msg;
-    }
-
-    function setMtoMode(mode) {
-      mtoMode = mode;
-      const btnLive = document.getElementById('btnSourceLive');
-      const btnSim = document.getElementById('btnSourceSim');
-      if (mode === 'live') {
-        btnLive.className = "text-xs font-medium px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 transition";
-        btnSim.className = "text-xs font-medium px-2 py-0.5 rounded text-slate-400 hover:text-white transition";
-      } else {
-        btnSim.className = "text-xs font-medium px-2 py-0.5 rounded bg-sky-500/20 text-sky-300 border border-sky-500/40 transition";
-        btnLive.className = "text-xs font-medium px-2 py-0.5 rounded text-slate-400 hover:text-white transition";
-      }
+    function toggleMode() {
+      autoLive = !autoLive;
+      document.getElementById("btnMode").textContent =
+        autoLive ? "Source : Direct → Netlify → Démo" : "Source : Démo locale";
       runBriefing();
     }
 
-    function loadPreset(dep, wpts, arr, fl, corridor) {
-      document.getElementById('depInput').value = dep;
-      document.getElementById('wptInput').value = wpts;
-      document.getElementById('arrInput').value = arr;
-      document.getElementById('flInput').value = fl;
-      document.getElementById('corridorSlider').value = corridor;
-      document.getElementById('corridorVal').textContent = corridor + ' NM';
+    function preset(dep, wpt, arr, fl, corr) {
+      document.getElementById("depInput").value = dep;
+      document.getElementById("wptInput").value = wpt;
+      document.getElementById("arrInput").value = arr;
+      document.getElementById("flInput").value = fl;
+      document.getElementById("corridorSlider").value = corr;
+      document.getElementById("corridorLabel").textContent = corr + " NM";
       runBriefing();
     }
 
-    function toRad(deg) { return deg * Math.PI / 180; }
-    function haversineNm(lat1, lon1, lat2, lon2) {
+    function setFilter(f) {
+      activeFilter = f;
+      ["crit", "all", "filt"].forEach(k => {
+        const el = document.getElementById("tab" + k[0].toUpperCase() + k.slice(1));
+        el.className = "tab-btn" + (k === f ? " active" + (k === "crit" ? " red" : "") : "");
+      });
+      renderAll();
+    }
+
+    function setBanner(msg) {
+      const el = document.getElementById("banner");
+      el.style.display = msg ? "block" : "none";
+      el.textContent = msg || "";
+    }
+
+    function toRad(d) { return d * Math.PI / 180; }
+    function distNm(lat1, lon1, lat2, lon2) {
       const R = 3440.065;
-      const dLat = toRad(lat2 - lat1);
-      const dLon = toRad(lon2 - lon1);
-      const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+      const a = Math.sin(toRad(lat2 - lat1) / 2) ** 2 +
+        Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(toRad(lon2 - lon1) / 2) ** 2;
       return 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     }
 
-    function pointToSegmentDistanceNm(lat, lon, lat1, lon1, lat2, lon2) {
-      const avgLat = toRad((lat1 + lat2) / 2);
-      const x = (lon - lon1) * 60 * Math.cos(avgLat);
-      const y = (lat - lat1) * 60;
-      const dx = (lon2 - lon1) * 60 * Math.cos(avgLat);
-      const dy = (lat2 - lat1) * 60;
-      const lenSq = dx * dx + dy * dy;
-      if (lenSq === 0) return Math.hypot(x, y);
-      let t = (x * dx + y * dy) / lenSq;
-      t = Math.max(0, Math.min(1, t));
-      return Math.hypot(x - t * dx, y - t * dy);
-    }
-
-    function distanceToRouteNm(lat, lon, routePoints) {
-      let minDist = Infinity;
-      for (let i = 0; i < routePoints.length - 1; i++) {
-        const d = pointToSegmentDistanceNm(lat, lon, routePoints[i].lat, routePoints[i].lon, routePoints[i + 1].lat, routePoints[i + 1].lon);
-        if (d < minDist) minDist = d;
+    function distToAxisNm(lat, lon, pts) {
+      let best = Infinity;
+      for (let i = 0; i < pts.length - 1; i++) {
+        const latAvg = toRad((pts[i].lat + pts[i + 1].lat) / 2);
+        const x = (lon - pts[i].lon) * 60 * Math.cos(latAvg);
+        const y = (lat - pts[i].lat) * 60;
+        const dx = (pts[i + 1].lon - pts[i].lon) * 60 * Math.cos(latAvg);
+        const dy = (pts[i + 1].lat - pts[i].lat) * 60;
+        const len2 = dx * dx + dy * dy;
+        const t = len2 ? Math.max(0, Math.min(1, (x * dx + y * dy) / len2)) : 0;
+        const d = Math.hypot(x - t * dx, y - t * dy);
+        if (d < best) best = d;
       }
-      return minDist;
+      return best;
     }
 
-    async function callNetlifyWeather(params) {
-      const qs = new URLSearchParams(params).toString();
-      const res = await fetch(`/.netlify/functions/weather?${qs}`); if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      return await res.json();
-    }
-
-    async function resolveAirport(icao) {
-      if (AIRPORTS[icao]) return AIRPORTS[icao];
-      try {
-        const data = await callNetlifyWeather({ type: "station", ids: icao });
-        if (Array.isArray(data) && data.length > 0 && data[0].lat != null) {
-          const st = data[0];
-          AIRPORTS[icao] = {
-            name: st.site || icao,
-            lat: parseFloat(st.lat),
-            lon: parseFloat(st.lon),
-            fir: icao.startsWith("LF") ? "LFFF" : "ZZZZ",
-            hasTaf: true
-          };
-          return AIRPORTS[icao];
-        }
-      } catch (e) {
-        console.warn("Lookup Netlify stationinfo indisponible:", e);
-      }
-      return null;
-    }
-
-    // --- DECODAGE METAR & TAF EN LANGAGE CLAIR ---
-    function decodeWeatherPhenomena(text) {
-      const map = [
-        { re: /\b\+TSRA\b/g, fr: "Orage fort + pluie forte" },
-        { re: /\bTSRA\b/g, fr: "Orage + pluie" },
-        { re: /\bTS\b/g, fr: "Activité orageuse" },
-        { re: /\b-RA\b/g, fr: "Pluie faible" },
-        { re: /\b\+RA\b/g, fr: "Pluie forte" },
-        { re: /\bRA\b/g, fr: "Pluie" },
-        { re: /\b-DZ\b/g, fr: "Bruine faible" },
-        { re: /\bDZ\b/g, fr: "Bruine" },
-        { re: /\bFG\b/g, fr: "Brouillard" },
-        { re: /\bBR\b/g, fr: "Brume" },
-        { re: /\bHZ\b/g, fr: "Brume sèche" },
-        { re: /\bSHRA\b/g, fr: "Averses de pluie" },
-        { re: /\b-SHRA\b/g, fr: "Faibles averses" }
-      ];
-      const found = [];
-      map.forEach(item => {
-        if (item.re.test(text)) found.push(item.fr);
-      });
-      return found.join(", ");
+    function decodePhenomena(str) {
+      const list = [];
+      if (/\b\+TSRA\b/.test(str)) list.push("Orage fort + pluie forte");
+      else if (/\bTSRA\b/.test(str)) list.push("Orage + pluie");
+      else if (/\bTS\b/.test(str)) list.push("Orage");
+      if (/\b-RA\b/.test(str)) list.push("Pluie faible");
+      else if (/\b\+RA\b/.test(str)) list.push("Pluie forte");
+      else if (/\bRA\b/.test(str)) list.push("Pluie");
+      if (/\b-DZ\b/.test(str)) list.push("Bruine faible");
+      else if (/\bDZ\b/.test(str)) list.push("Bruine");
+      if (/\bFG\b/.test(str)) list.push("Brouillard");
+      if (/\bBR\b/.test(str)) list.push("Brume");
+      if (/\bHZ\b/.test(str)) list.push("Brume sèche");
+      return list.join(", ");
     }
 
     function decodeMetar(raw) {
-      if (!raw) return null;
-      const items = [];
+      if (!raw) return ["Aucune observation disponible"];
+      const out = [];
+      const w = raw.match(/\b(VRB|\d{3})(\d{2,3})(?:G(\d{2,3}))?KT\b/);
+      if (w) {
+        out.push(`Vent : ${w[1] === "VRB" ? "Variable" : w[1] + "°"} pour ${parseInt(w[2], 10)} kt${w[3] ? " (rafales " + parseInt(w[3], 10) + " kt)" : ""}`);
+      }
+      if (/\bCAVOK\b/.test(raw)) {
+        out.push("Visibilité ≥ 10 km, pas de nuages < 5 000 ft ni CB");
+      } else {
+        const v = raw.match(/\s(\d{4})\s/);
+        if (v) {
+          const m = parseInt(v[1], 10);
+          out.push(`Visibilité : ${m >= 9999 ? "10 km ou plus" : (m / 1000).toFixed(1).replace(".0", "") + " km"}`); } } const ph = decodePhenomena(raw); if (ph) out.push(`Phénomènes : ${ph}`);
 
-      // Vent
-      const windMatch = raw.match(/\b(VRB|\d{3})(\d{2,3})(?:G(\d{2,3}))?KT\b/);
-      if (windMatch) {
-        const dir = windMatch[1] === "VRB" ? "Variable" : `${windMatch[1]}°`; const spd = parseInt(windMatch[2], 10); const gust = windMatch[3] ? ` (rafales ${parseInt(windMatch[3], 10)} kt)` : "";
-        items.push(`Vent :
+      const clouds = [...raw.matchAll(/\b(FEW|SCT|BKN|OVC|VV)(\d{3})(CB|TCU)?\b/g)];
+      if (clouds.length) {
+        const mapC = { FEW: "Quelques", SCT: "Épars", BKN: "Fragmenté", OVC: "Couvert", VV: "Visibilité verticale" };
+        out.push("Nuages : " + clouds.map(c => `${mapC[c[1]] \vert{}\vert{} c[1]}${parseInt(c[2], 10) * 100} ft${c[3] ? " [" + c[3] + "]" : ""}`).join(" • ")); } const td = raw.match(/\s(M?\d{2})\/(M?\d{2})\b/); if (td) { const t = parseInt(td[1].replace("M", "-"), 10); const d = parseInt(td[2].replace("M", "-"), 10); out.push(`Température / Rosée : ${t}°C / ${d}°C`); } const q = raw.match(/\bQ(\d{4})\b/); if (q) out.push(`QNH : ${parseInt(q[1], 10)} hPa`);
+      return out.length ? out : [raw];
+    }
+
+    function decodeTaf(raw) {
+      if (!raw) return null;
+      const lines = [];
+      const val = raw.match(/\b(\d{2})(\d{2})\/(\d{2})(\d{2})\b/);
+      if (val) lines.push(`Validité : du ${val[1]} à ${val[2]}h UTC au ${val[3]} à ${val[4]}h UTC`);
+      const base = decodeMetar(raw);
+      if (base.length) lines.push("Base : " + base.join(" | "));
+      const evs = [...raw.matchAll(/\b(BECMG|TEMPO|PROB\d{2})\s+([^\n]+?)(?=\s+(?:BECMG|TEMPO|PROB\d{2}|FM\d{6})|$)/g)];
+      evs.forEach(e => {
+        const body = e[2].trim();
+        const slot = body.match(/^(\d{4}\/\d{4})\s*(.*)/);
+        const desc = decodeMetar("METAR XXXX 000000Z " + (slot ? slot[2] : body)).join(" • ");
+        const ph = decodePhenomena(body);
+        lines.push(`${e[1]}${slot ? " [" + slot[1
