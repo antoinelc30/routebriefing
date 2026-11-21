@@ -110,8 +110,9 @@
         </div>
       </div>
 
-      <div class="mt-2.5 flex justify-center text-xs">
+      <div class="mt-2.5 flex flex-col items-center gap-1 text-xs">
         <div id="routeSummaryBadge" class="font-mono-aero text-slate-300 text-center"></div>
+        <div id="briefingFeedback" class="hidden font-mono-aero text-xs px-3 py-1 rounded-lg border"></div>
       </div>
     </div>
   </section>
@@ -237,7 +238,19 @@
       EGLL: { name: "London-Heathrow", lat: 51.4700, lon: -0.4543, fir: "EGTT", hasTaf: true },
       EGKK: { name: "London-Gatwick", lat: 51.1537, lon: -0.1821, fir: "EGTT", hasTaf: true },
       LSGG: { name: "Genève-Cointrin", lat: 46.2381, lon: 6.1089, fir: "LSAS", hasTaf: true },
-      LFMD: { name: "Cannes-Mandelieu", lat: 43.5481, lon: 6.9539, fir: "LFMM", hasTaf: true }
+      LSZH: { name: "Zurich", lat: 47.4647, lon: 8.5492, fir: "LSAS", hasTaf: true },
+      LFMD: { name: "Cannes-Mandelieu", lat: 43.5481, lon: 6.9539, fir: "LFMM", hasTaf: true },
+      LEMD: { name: "Madrid-Barajas", lat: 40.4936, lon: -3.5668, fir: "LECM", hasTaf: true },
+      LEBL: { name: "Barcelona-El Prat", lat: 41.2974, lon: 2.0833, fir: "LECB", hasTaf: true },
+      EDDF: { name: "Frankfurt am Main", lat: 50.0333, lon: 8.5706, fir: "EDGG", hasTaf: true },
+      EDDM: { name: "Munich", lat: 48.3538, lon: 11.7861, fir: "EDMM", hasTaf: true },
+      EHAM: { name: "Amsterdam-Schiphol", lat: 52.3086, lon: 4.7639, fir: "EHAA", hasTaf: true },
+      EBBR: { name: "Brussels", lat: 50.9014, lon: 4.4844, fir: "EBBU", hasTaf: true },
+      LIMC: { name: "Milan-Malpensa", lat: 45.6306, lon: 8.7281, fir: "LIMM", hasTaf: true },
+      LIRF: { name: "Rome-Fiumicino", lat: 41.8003, lon: 12.2389, fir: "LIRR", hasTaf: true },
+      LPPT: { name: "Lisbon", lat: 38.7813, lon: -9.1359, fir: "LPPC", hasTaf: true },
+      LOWW: { name: "Vienna", lat: 48.1103, lon: 16.5697, fir: "LOVV", hasTaf: true },
+      EKCH: { name: "Copenhagen", lat: 55.6180, lon: 12.6561, fir: "EKDK", hasTaf: true }
     };
 
     const WAYPOINTS = {
@@ -258,7 +271,20 @@
       MTG: { lat: 43.5733, lon: 5.9806 },
       STP: { lat: 43.5200, lon: 6.5300 },
       DPE: { lat: 49.9250, lon: 1.1700 },
-      SFD: { lat: 50.7600, lon: 0.1210 }
+      SFD: { lat: 50.7600, lon: 0.1210 },
+      BAS: { lat: 47.6064, lon: 7.5839 },
+      KLO: { lat: 47.4600, lon: 8.5500 },
+      SRN: { lat: 45.6300, lon: 8.7200 },
+      BRA: { lat: 44.6900, lon: 7.8500 },
+      BZO: { lat: 46.4600, lon: 11.3200 },
+      ZAG: { lat: 41.3000, lon: 2.0800 },
+      RBO: { lat: 40.4900, lon: -3.5700 },
+      GTQ: { lat: 41.6600, -0.8900 },
+      DINKA: { lat: 50.0300, 8.5700 },
+      MUN: { lat: 48.3500, 11.7900 },
+      SPL: { lat: 52.3100, 4.7600 },
+      BUB: { lat: 50.9000, 4.4800 },
+      LYD: { lat: 51.1486, 0.9011 }
     };
 
     const Q_CODE_RULES = {
@@ -301,14 +327,22 @@
       }
     }
 
-    function showBanner() {}
-    function _unusedBanner(msg, type = 'info') {
-      const el = document.getElementById('statusBanner');
-      if (!msg) { el.classList.add('hidden'); return; }
-      el.classList.remove('hidden', 'bg-amber-500/10', 'border-amber-500/30', 'text-amber-300', 'bg-sky-500/10', 'border-sky-500/30', 'text-sky-300', 'bg-rose-500/10', 'border-rose-500/30', 'text-rose-300');
-      if (type === 'warn') el.classList.add('bg-amber-500/10', 'border-amber-500/30', 'text-amber-300');
-      else if (type === 'error') el.classList.add('bg-rose-500/10', 'border-rose-500/30', 'text-rose-300');
-      else el.classList.add('bg-sky-500/10', 'border-sky-500/30', 'text-sky-300');
+    function showBanner(msg, type = 'info') {
+      const el = document.getElementById('briefingFeedback');
+      if (!el) return;
+      if (!msg) {
+        el.classList.add('hidden');
+        el.textContent = '';
+        return;
+      }
+      el.className = "font-mono-aero text-xs px-3 py-1 rounded-lg border";
+      if (type === 'error') {
+        el.classList.add('bg-rose-500/15', 'border-rose-500/40', 'text-rose-300');
+      } else if (type === 'warn') {
+        el.classList.add('bg-amber-500/15', 'border-amber-500/40', 'text-amber-300');
+      } else {
+        el.classList.add('bg-sky-500/15', 'border-sky-500/40', 'text-sky-300');
+      }
       el.textContent = msg;
     }
 
@@ -323,7 +357,19 @@
         btnSim.className = "text-xs font-medium px-2 py-0.5 rounded bg-sky-500/20 text-sky-300 border border-sky-500/40 transition";
         btnLive.className = "text-xs font-medium px-2 py-0.5 rounded text-slate-400 hover:text-white transition";
       }
-      runBriefing();
+      ['depInput', 'wptInput', 'arrInput'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) {
+        el.addEventListener('keydown', e => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            runBriefing();
+          }
+        });
+      }
+    });
+
+    runBriefing();
     }
 
     function loadPreset(dep, wpts, arr, fl, corridor) {
@@ -800,6 +846,7 @@
       const btn = document.getElementById('btnAnalyze');
       btn.disabled = true;
       btn.classList.add('opacity-60');
+      showBanner("");
 
       let rawDep = document.getElementById('depInput').value.trim().toUpperCase();
       let arrIcao = document.getElementById('arrInput').value.trim().toUpperCase();
