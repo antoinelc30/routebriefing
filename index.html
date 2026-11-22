@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AeroRouteBriefing — NOTAM & MTO Aero</title>
+  <title>AeroRouteBriefing v7.3.2 — NOTAM & MTO Aero</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -266,6 +266,13 @@
   </main>
 
   <script>
+    window.addEventListener('error', (ev) => {
+      const el = document.getElementById('briefingFeedback');
+      if (el) {
+        el.className = "font-mono-aero text-xs px-3 py-1 rounded-lg border bg-rose-500/15 border-rose-500/40 text-rose-300";
+        el.textContent = "Erreur script : " + (ev.message || "inconnue");
+      }
+    });
     const AIRPORTS = {
       LFPN: { name: "Toussus-le-Noble", lat: 48.7519, lon: 2.1061, fir: "LFFF", hasTaf: false },
       LFPM: { name: "Melun-Villaroche", lat: 48.6047, lon: 2.6711, fir: "LFFF", hasTaf: false },
@@ -342,12 +349,12 @@
       BZO: { lat: 46.4600, lon: 11.3200 },
       ZAG: { lat: 41.3000, lon: 2.0800 },
       RBO: { lat: 40.4900, lon: -3.5700 },
-      GTQ: { lat: 41.6600, -0.8900 },
-      DINKA: { lat: 50.0300, 8.5700 },
-      MUN: { lat: 48.3500, 11.7900 },
-      SPL: { lat: 52.3100, 4.7600 },
-      BUB: { lat: 50.9000, 4.4800 },
-      LYD: { lat: 51.1486, 0.9011 }
+      GTQ: { lat: 41.6600, lon: -0.8900 },
+      DINKA: { lat: 50.0300, lon: 8.5700 },
+      MUN: { lat: 48.3500, lon: 11.7900 },
+      SPL: { lat: 52.3100, lon: 4.7600 },
+      BUB: { lat: 50.9000, lon: 4.4800 },
+      LYD: { lat: 51.1486, lon: 0.9011 }
     };
 
     const Q_CODE_RULES = {
@@ -425,15 +432,7 @@
         }
       }
   
-    window.addEventListener('error', (ev) => {
-      showBanner("Erreur script : " + (ev.message || "inconnue"), "error");
-    });
-    window.addEventListener('unhandledrejection', (ev) => {
-      const reason = ev.reason && ev.reason.message ? ev.reason.message : String(ev.reason || "promesse rejetée");
-      showBanner("Erreur réseau/async : " + reason, "warn");
-    });
-
-    runBriefing();
+      runBriefing();
     }
 
     function loadPreset(dep, wpts, arr, fl, corridor) {
@@ -481,13 +480,12 @@
     const CACHE_TTL_MS = 120000;
     let netlifyFunctionAvailable = null;
 
-    function fetchWithTimeout(url, timeoutMs = 2500) {
+    function fetchWithTimeout(url, timeoutMs = 1200) {
       const ctrl = new AbortController();
       const timer = setTimeout(() => ctrl.abort(), timeoutMs);
       return fetch(url, { signal: ctrl.signal }).finally(() => clearTimeout(timer));
     }
 
-    // Appel rapide avec cache TTL (2 min) et mémorisation de disponibilité de la Netlify Function
     async function callNetlifyWeather(params) {
       const qs = new URLSearchParams(params).toString();
       const cacheKey = qs;
@@ -504,7 +502,7 @@
 
       if (netlifyFunctionAvailable !== false) {
         try {
-          const res = await fetchWithTimeout(`/.netlify/functions/weather?${qs}`, 2200);
+          const res = await fetchWithTimeout(`/.netlify/functions/weather?${qs}`, 1100);
           if (res.ok) {
             const json = await res.json();
             const valid = (Array.isArray(json) && json.length > 0) || (json && !Array.isArray(json) && Object.keys(json).length > 0);
@@ -523,7 +521,7 @@
       }
 
       if (!directUrl) throw new Error("Endpoint météo indisponible");
-      const directRes = await fetchWithTimeout(directUrl, 4000);
+      const directRes = await fetchWithTimeout(directUrl, 1800);
       if (!directRes.ok) throw new Error(`HTTP ${directRes.status}`);
       const directJson = await directRes.json();
       WEATHER_CACHE.set(cacheKey, { ts: Date.now(), data: directJson });
@@ -944,6 +942,32 @@
       currentCorridorNm = parseInt(document.getElementById('corridorSelect').value, 10);
 
       try {
+        const quickDep = AIRPORTS[depIcao] || { name: depIcao, lat: 48.7519, lon: 2.1061, fir: "LFFF", hasTaf: false };
+        const quickArr = AIRPORTS[arrIcao] || { name: arrIcao, lat: 48.6047, lon: 2.6711, fir: "LFFF", hasTaf: false };
+        const quickRoute = [{ code: depIcao, name: quickDep.name, lat: quickDep.lat, lon: quickDep.lon }];
+        if (wptRaw && wptRaw !== "DCT" && wptRaw !== "AUTO") {
+          wptRaw.split(/[\s,]+/).forEach(w => {
+            if (WAYPOINTS[w]) quickRoute.push({ code: w, name: w, lat: WAYPOINTS[w].lat, lon: WAYPOINTS[w].lon });
+            else if (AIRPORTS[w]) quickRoute.push({ code: w, name: AIRPORTS[w].name, lat: AIRPORTS[w].lat, lon: AIRPORTS[w].lon });
+          });
+        }
+        quickRoute.push({ code: arrIcao, name: quickArr.name, lat: quickArr.lat, lon: quickArr.lon });
+        currentRoutePoints = quickRoute;
+        analyzedNotams = buildDynamicNotams(depIcao, arrIcao, quickDep, quickArr, cruiseFl)
+          .map(n => evaluateNotam(n, quickRoute, currentCorridorNm, cruiseFl))
+          .sort((a, b) => b.score - a.score);
+        corridorMto = [quickDep, quickArr].map((apt, i) => {
+          const code = i === 0 ? depIcao : arrIcao;
+          const sim = getSimulatedWeather(code);
+          return { icao: code, ...apt, distNm: 0, metar: sim.metar, taf: sim.taf, note: null, isLive: false, flightCat: parseFlightCategory(sim.metar) };
+        });
+        document.getElementById('statTotalNotams').textContent = analyzedNotams.length;
+        document.getElementById('statImportantNotams').textContent = analyzedNotams.filter(n => n.isImportant).length;
+        document.getElementById('statFilteredNotams').textContent = analyzedNotams.filter(n => !n.isImportant).length;
+        renderNotams();
+        renderMto();
+        drawRouteCanvas();
+
         const [depApt, arrApt] = await Promise.all([resolveAirport(depIcao), resolveAirport(arrIcao)]);
 
         if (!depApt || !arrApt) {
